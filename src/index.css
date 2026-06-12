@@ -1,0 +1,51 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 210 20% 7%;
+    --card: 0 0% 100%;
+    --card-foreground: 210 20% 7%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 20% 7%;
+    --primary: 187 90% 45%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 186 60% 95%;
+    --secondary-foreground: 187 90% 30%;
+    --muted: 186 30% 96%;
+    --muted-foreground: 210 10% 50%;
+    --accent: 186 60% 95%;
+    --accent-foreground: 187 90% 30%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 186 20% 90%;
+    --input: 186 20% 90%;
+    --ring: 187 90% 45%;
+    --radius: 0.75rem;
+
+    /* Curadent custom tokens */
+    --cyan: #0CCEDD;
+    --cyan-dark: #09A8B8;
+    --cyan-light: #E6F9FB;
+    --cyan-mid: #B3EEF4;
+    --dark: #0D1117;
+    --dark-2: #161C26;
+    --surface: #E8EDEF;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    background-color: var(--surface);
+  }
+}
