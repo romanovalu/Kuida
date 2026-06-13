@@ -70,7 +70,7 @@ export default function Pacientes({ pacientes, onSave, onDelete, onVerHistorial,
     `${p.nombre} ${p.apellido} ${p.dni} ${p.telefono}`.toLowerCase().includes(busqueda.toLowerCase())
   );
 
-  const iniciales = (p: Paciente) => `${p.nombre[0]}${p.apellido[0]}`.toUpperCase();
+  const iniciales = (p: Paciente) => `${p.nombre.charAt(0) || '?'}${p.apellido.charAt(0) || ''}`.toUpperCase();
 
   return (
     <div className="space-y-5">
@@ -281,7 +281,7 @@ export function FormPaciente({ paciente, onSave, onClose, rubro }: FormProps) {
     if (!form.nombre.trim() || !form.apellido.trim()) { setError('Nombre y apellido son obligatorios'); return; }
     if (!form.telefono.trim()) { setError('El teléfono es obligatorio'); return; }
     setError('');
-    onSave({ ...form, id: paciente?.id || uid(), fechaRegistro: paciente?.fechaRegistro || new Date().toISOString().slice(0, 10), edad: Number(form.edad) });
+    onSave({ ...form, id: paciente?.id || uid(), fechaRegistro: paciente?.fechaRegistro || new Date().toISOString().slice(0, 10), edad: form.edad ? Number(form.edad) : 0 });
   };
 
   return (

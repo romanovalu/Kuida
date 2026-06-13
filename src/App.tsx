@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from './lib/supabase';
 import type { Session } from '@supabase/supabase-js';
 import * as db from './lib/db';
 import {
-  applyTheme, RUBROS, SERVICIOS_PRESET, defaultConfig,
+  applyTheme, RUBROS, SERVICIOS_PRESET, defaultConfig, saveLogoApp, saveLogoReceta, getLogoApp, getLogoReceta,
 } from './store';
 import type {
   Paciente, Turno, Consulta, HorarioBloqueado, Configuracion,
@@ -44,6 +44,7 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
   const [showPasswordReset, setShowPasswordReset] = useState(false);
+  const dataLoaded = useRef(false);
 
   const [page, setPage] = useState<Page>('dashboard');
   const [config, setConfig] = useState<Configuracion>(defaultConfig);
@@ -85,7 +86,9 @@ export default function App() {
 
   // ── Carga de datos al autenticar ─────────────────────────────────────────────
   useEffect(() => {
-    if (!session) return;
+    if (!session) { dataLoaded.current = false; return; }
+    if (dataLoaded.current) return;
+    dataLoaded.current = true;
     loadAll();
   }, [session]);
 
@@ -105,8 +108,13 @@ export default function App() {
       setNotasClinicas(data.notas);
       setHistorialServicios(data.servicios);
 
-      const reservas = await db.getReservasPublicas();
+      const [reservas, logos] = await Promise.all([
+        db.getReservasPublicas(),
+        db.getLogosFromDB(),
+      ]);
       setReservasPublicas(reservas.filter(r => r.estado === 'pendiente'));
+      if (logos.logoApp) saveLogoApp(logos.logoApp);
+      if (logos.logoReceta) saveLogoReceta(logos.logoReceta);
 
       if (data.config) {
         setConfig(data.config);
@@ -138,7 +146,7 @@ export default function App() {
   }, []);
 
   const handleSaveTurno = useCallback((t: Turno) => {
-    setTurnos(prev => [...prev, t]);
+    setTurnos(prev => prev.some(x => x.id === t.id) ? prev.map(x => x.id === t.id ? t : x) : [...prev, t]);
     db.upsertTurno(t).catch(console.error);
   }, []);
 
@@ -171,21 +179,35 @@ export default function App() {
   }, []);
 
   const handleAceptarReserva = useCallback((r: db.ReservaPublica) => {
+    const partes = r.nombre_paciente.trim().split(' ');
+    const nuevoPaciente: Paciente = {
+      id: crypto.randomUUID(),
+      nombre: partes[0] || r.nombre_paciente,
+      apellido: partes.slice(1).join(' ') || '-',
+      edad: 0,
+      telefono: r.telefono_paciente || '',
+      email: '', dni: '', obraSocial: '', alergias: '', antecedentes: '', notasAdicionales: '',
+      fechaRegistro: new Date().toISOString().slice(0, 10),
+    };
     const nuevoTurno: Turno = {
       id: crypto.randomUUID(),
       fecha: r.fecha,
       hora: r.hora,
       duracion: r.duracion,
-      pacienteId: '',
-      motivo: r.motivo || '',
+      pacienteId: nuevoPaciente.id,
+      motivo: r.motivo || 'Reserva online',
       estado: 'confirmado',
-      notas: `Reserva online — ${r.nombre_paciente}${r.telefono_paciente ? ` · Tel: ${r.telefono_paciente}` : ''}`,
+      profesional: config.nombreProfesional,
+      especialidad: config.especialidad,
+      createdAt: new Date().toISOString(),
     };
+    setPacientes(prev => [...prev, nuevoPaciente]);
+    db.upsertPaciente(nuevoPaciente).catch(console.error);
     setTurnos(prev => [...prev, nuevoTurno]);
     db.upsertTurno(nuevoTurno).catch(console.error);
     setReservasPublicas(prev => prev.filter(x => x.id !== r.id));
     db.updateReservaEstado(r.id, 'aceptado').catch(console.error);
-  }, []);
+  }, [config]);
 
   const handleRechazarReserva = useCallback((id: string) => {
     setReservasPublicas(prev => prev.filter(x => x.id !== id));
@@ -195,7 +217,7 @@ export default function App() {
   const handleSaveConfig = useCallback((c: Configuracion) => {
     setConfig(c);
     if (c.apariencia) applyTheme(c.apariencia.accentColor, c.apariencia.darkColor);
-    db.saveConfigToDB(c).catch(console.error);
+    db.saveConfigToDB(c, getLogoApp() || undefined, getLogoReceta() || undefined).catch(console.error);
   }, []);
 
   const handleSaveReceta = useCallback((r: Receta) => {
