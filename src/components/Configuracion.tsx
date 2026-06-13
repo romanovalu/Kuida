@@ -1,11 +1,12 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { Configuracion as Config, Servicio, Rubro, ConfigApariencia } from '../types';
 import { RUBROS, SERVICIOS_PRESET, uid, applyTheme, saveLogoApp, getLogoApp, saveLogoReceta, getLogoReceta } from '../store';
+import { getBookingLink, saveBookingLink, type BookingLink } from '../lib/db';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Check, Plus, Trash2, Pencil, X, RefreshCw, Upload, Image } from 'lucide-react';
+import { Check, Plus, Trash2, Pencil, X, RefreshCw, Upload, Image, Link, Copy } from 'lucide-react';
 
 const RUBROS_SALUD = ['odontologia','medicina','psicologia','psicopedagogia','kinesiologia','nutricion'];
 
@@ -43,6 +44,25 @@ export default function Configuracion({ config, onSave, onResetSetup }: Props) {
   const [showServicioForm, setShowServicioForm] = useState(false);
   const [logoApp, setLogoApp] = useState(getLogoApp());
   const [logoReceta, setLogoReceta] = useState(getLogoReceta());
+  const [bookingLink, setBookingLink] = useState<BookingLink>({ slug: '', activo: false, mensaje: '' });
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [linkSaved, setLinkSaved] = useState(false);
+
+  useEffect(() => {
+    getBookingLink().then(l => { if (l) setBookingLink(l); });
+  }, []);
+
+  const toSlug = (name: string) => name.toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+  const handleSaveLink = async () => {
+    await saveBookingLink(bookingLink);
+    setLinkSaved(true);
+    setTimeout(() => setLinkSaved(false), 2500);
+  };
+
+  const publicUrl = `https://www.kuida.com.ar/reservar/${bookingLink.slug}`;
   const logoAppRef = useRef<HTMLInputElement>(null);
   const logoRecetaRef = useRef<HTMLInputElement>(null);
 
@@ -331,6 +351,92 @@ export default function Configuracion({ config, onSave, onResetSetup }: Props) {
           </div>
         </Section>
       )}
+
+      {/* ── Link de reserva online ── */}
+      <Section title="Link de reserva online">
+        <p className="text-xs text-gray-400 mb-4">Compartí un link para que tus pacientes pidan turno sin llamarte. Podés activarlo o desactivarlo cuando quieras.</p>
+
+        {/* Toggle activo */}
+        <div className="flex items-center justify-between mb-4 p-3 rounded-xl" style={{ background: '#F8FAFC', border: '1.5px solid #E5E7EB' }}>
+          <div>
+            <p className="text-sm font-bold" style={{ color: 'var(--dark)' }}>Reservas online</p>
+            <p className="text-xs text-gray-400">{bookingLink.activo ? 'Los pacientes pueden reservar' : 'Link desactivado'}</p>
+          </div>
+          <button
+            onClick={() => setBookingLink(l => ({ ...l, activo: !l.activo }))}
+            className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
+            style={{ background: bookingLink.activo ? 'var(--cyan)' : '#D1D5DB' }}
+          >
+            <span
+              className="inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform"
+              style={{ transform: bookingLink.activo ? 'translateX(22px)' : 'translateX(2px)' }}
+            />
+          </button>
+        </div>
+
+        {/* Slug */}
+        <Field label="Dirección de tu link">
+          <div className="flex gap-2 items-center">
+            <span className="text-xs text-gray-400 shrink-0 font-mono">kuida.com.ar/reservar/</span>
+            <Input
+              value={bookingLink.slug}
+              onChange={e => setBookingLink(l => ({ ...l, slug: toSlug(e.target.value) }))}
+              placeholder="tu-nombre"
+              className="rounded-xl border-gray-200 font-mono text-sm flex-1"
+            />
+          </div>
+          {!bookingLink.slug && form.nombreProfesional && (
+            <button
+              className="text-xs mt-1 font-bold"
+              style={{ color: 'var(--cyan)' }}
+              onClick={() => setBookingLink(l => ({ ...l, slug: toSlug(form.nombreProfesional) }))}
+            >
+              Usar "{toSlug(form.nombreProfesional)}"
+            </button>
+          )}
+        </Field>
+
+        {/* Copy URL */}
+        {bookingLink.slug && (
+          <div className="mt-3 flex items-center gap-2 p-3 rounded-xl" style={{ background: '#F0FDFE', border: '1.5px solid #A5F3FB' }}>
+            <Link size={14} style={{ color: 'var(--cyan)', flexShrink: 0 }} />
+            <span className="text-xs font-mono text-gray-600 truncate flex-1">{publicUrl}</span>
+            <button
+              onClick={() => { navigator.clipboard.writeText(publicUrl); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2000); }}
+              className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-colors"
+              style={{ background: linkCopied ? '#22C55E' : 'var(--cyan)', color: linkCopied ? 'white' : 'var(--dark)' }}
+            >
+              {linkCopied ? <Check size={12} /> : <Copy size={12} />}
+              {linkCopied ? 'Copiado' : 'Copiar'}
+            </button>
+          </div>
+        )}
+
+        {/* Mensaje de bienvenida */}
+        <div className="mt-3">
+          <Field label="Mensaje de bienvenida (opcional)">
+            <Textarea
+              value={bookingLink.mensaje}
+              onChange={e => setBookingLink(l => ({ ...l, mensaje: e.target.value }))}
+              placeholder="Ej: Bienvenido a mi consultorio. Elegí el día y horario que prefieras."
+              rows={3}
+              className="rounded-xl border-gray-200 resize-none text-sm"
+            />
+          </Field>
+        </div>
+
+        <button
+          onClick={handleSaveLink}
+          disabled={!bookingLink.slug}
+          className="mt-3 w-full py-2.5 rounded-full text-sm font-extrabold transition-all flex items-center justify-center gap-2"
+          style={linkSaved
+            ? { background: '#22C55E', color: 'white' }
+            : { background: bookingLink.slug ? 'var(--dark)' : '#E5E7EB', color: bookingLink.slug ? 'white' : '#9CA3AF' }}
+        >
+          {linkSaved && <Check size={15} />}
+          {linkSaved ? 'Link guardado' : 'Guardar link'}
+        </button>
+      </Section>
 
       <button
         onClick={guardar}

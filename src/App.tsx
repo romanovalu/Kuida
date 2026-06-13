@@ -60,6 +60,7 @@ export default function App() {
   const [historialServicios, setHistorialServicios] = useState<HistorialServicio[]>([]);
   const [recetas, setRecetas] = useState<Receta[]>([]);
   const [pacienteHistorial, setPacienteHistorial] = useState<Paciente | null>(null);
+  const [reservasPublicas, setReservasPublicas] = useState<db.ReservaPublica[]>([]);
 
   // ── Auth listener ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -95,6 +96,9 @@ export default function App() {
       setMediciones(data.mediciones);
       setNotasClinicas(data.notas);
       setHistorialServicios(data.servicios);
+
+      const reservas = await db.getReservasPublicas();
+      setReservasPublicas(reservas.filter(r => r.estado === 'pendiente'));
 
       if (data.config) {
         setConfig(data.config);
@@ -156,6 +160,28 @@ export default function App() {
   const handleDeleteBloqueado = useCallback((id: string) => {
     setBloqueados(prev => prev.filter(x => x.id !== id));
     db.deleteHorarioBloqueado(id).catch(console.error);
+  }, []);
+
+  const handleAceptarReserva = useCallback((r: db.ReservaPublica) => {
+    const nuevoTurno: Turno = {
+      id: crypto.randomUUID(),
+      fecha: r.fecha,
+      hora: r.hora,
+      duracion: r.duracion,
+      pacienteId: '',
+      motivo: r.motivo || '',
+      estado: 'confirmado',
+      notas: `Reserva online — ${r.nombre_paciente}${r.telefono_paciente ? ` · Tel: ${r.telefono_paciente}` : ''}`,
+    };
+    setTurnos(prev => [...prev, nuevoTurno]);
+    db.upsertTurno(nuevoTurno).catch(console.error);
+    setReservasPublicas(prev => prev.filter(x => x.id !== r.id));
+    db.updateReservaEstado(r.id, 'aceptado').catch(console.error);
+  }, []);
+
+  const handleRechazarReserva = useCallback((id: string) => {
+    setReservasPublicas(prev => prev.filter(x => x.id !== id));
+    db.updateReservaEstado(id, 'rechazado').catch(console.error);
   }, []);
 
   const handleSaveConfig = useCallback((c: Configuracion) => {
@@ -338,7 +364,7 @@ export default function App() {
         </header>
 
         <div className="max-w-2xl mx-auto px-4 py-6">
-          {page === 'dashboard' && <Dashboard turnos={turnos} pacientes={pacientes} bloqueados={bloqueados} config={config} onNavigate={navigate} onSaveTurno={handleSaveTurno} onSavePaciente={handleSavePaciente} recetas={recetas} onSaveReceta={handleSaveReceta} onDeleteReceta={handleDeleteReceta} />}
+          {page === 'dashboard' && <Dashboard turnos={turnos} pacientes={pacientes} bloqueados={bloqueados} config={config} onNavigate={navigate} onSaveTurno={handleSaveTurno} onSavePaciente={handleSavePaciente} recetas={recetas} onSaveReceta={handleSaveReceta} onDeleteReceta={handleDeleteReceta} reservasPendientes={reservasPublicas} onAceptarReserva={handleAceptarReserva} onRechazarReserva={handleRechazarReserva} />}
           {page === 'turnos'    && <Turnos turnos={turnos} pacientes={pacientes} bloqueados={bloqueados} config={config} onSaveTurno={handleSaveTurno} onUpdateTurno={handleUpdateTurno} onSaveBloqueado={handleSaveBloqueado} onDeleteBloqueado={handleDeleteBloqueado} />}
           {page === 'pacientes' && <Pacientes pacientes={pacientes} onSave={handleSavePaciente} onDelete={handleDeletePaciente} onVerHistorial={navToHistorial} config={config} {...profToolsProps} />}
           {page === 'historial' && <Historial consultas={consultas} pacientes={pacientes} turnos={turnos} pacienteSeleccionado={pacienteHistorial} onSave={handleSaveConsulta} onDelete={handleDeleteConsulta} config={config} />}

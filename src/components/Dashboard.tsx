@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { Turno, Paciente, HorarioBloqueado, Configuracion, Receta } from '../types';
-import { AlertCircle, Clock, CheckCircle2, Users, CalendarPlus, UserPlus, ClipboardList, BarChart2, ArrowRight, FileText, X } from 'lucide-react';
+import type { ReservaPublica } from '../lib/db';
+import { AlertCircle, Clock, CheckCircle2, Users, CalendarPlus, UserPlus, ClipboardList, BarChart2, ArrowRight, FileText, X, Check, Link } from 'lucide-react';
 import { FormTurno } from './Turnos';
 import { FormPaciente } from './Pacientes';
 import RecetasSection from './RecetaModal';
@@ -18,6 +19,9 @@ interface Props {
   recetas?: Receta[];
   onSaveReceta?: (r: Receta) => void;
   onDeleteReceta?: (id: string) => void;
+  reservasPendientes?: ReservaPublica[];
+  onAceptarReserva?: (r: ReservaPublica) => void;
+  onRechazarReserva?: (id: string) => void;
 }
 
 const estadoStyle: Record<string, { bg: string; text: string; label: string }> = {
@@ -27,7 +31,7 @@ const estadoStyle: Record<string, { bg: string; text: string; label: string }> =
   cancelado:  { bg: '#F9FAFB', text: '#9CA3AF', label: 'Cancelado' },
 };
 
-export default function Dashboard({ turnos, pacientes, bloqueados, config, onNavigate, onSaveTurno, onSavePaciente, recetas = [], onSaveReceta, onDeleteReceta }: Props) {
+export default function Dashboard({ turnos, pacientes, bloqueados, config, onNavigate, onSaveTurno, onSavePaciente, recetas = [], onSaveReceta, onDeleteReceta, reservasPendientes = [], onAceptarReserva, onRechazarReserva }: Props) {
   const today = new Date().toISOString().slice(0, 10);
   const [showTurnoForm, setShowTurnoForm] = useState(false);
   const [showPacienteForm, setShowPacienteForm] = useState(false);
@@ -156,6 +160,59 @@ export default function Dashboard({ turnos, pacientes, bloqueados, config, onNav
           </div>
         )}
       </section>
+
+      {/* Reservas online pendientes */}
+      {reservasPendientes.length > 0 && (
+        <section>
+          <div className="flex items-center gap-2 mb-3">
+            <Link size={14} style={{ color: 'var(--cyan)' }} />
+            <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wider">Reservas online</h2>
+            <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: '#FFF7ED', color: '#C2410C' }}>
+              {reservasPendientes.length} pendiente{reservasPendientes.length > 1 ? 's' : ''}
+            </span>
+          </div>
+          <div className="bg-white rounded-2xl overflow-hidden shadow-sm divide-y divide-gray-100">
+            {reservasPendientes.map(r => (
+              <div key={r.id} className="px-4 py-3.5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-bold" style={{ color: 'var(--dark)' }}>{r.nombre_paciente}</p>
+                      <span className="text-xs font-semibold tabular-nums px-2 py-0.5 rounded-full" style={{ background: 'var(--cyan-light)', color: 'var(--cyan-dark)' }}>
+                        {r.fecha} · {r.hora}hs
+                      </span>
+                    </div>
+                    {r.telefono_paciente && (
+                      <p className="text-xs text-gray-400 mt-0.5">Tel: {r.telefono_paciente}</p>
+                    )}
+                    {r.motivo && (
+                      <p className="text-xs text-gray-500 mt-0.5 truncate">"{r.motivo}"</p>
+                    )}
+                  </div>
+                  <div className="flex gap-1.5 flex-shrink-0 mt-0.5">
+                    <button
+                      onClick={() => onRechazarReserva?.(r.id)}
+                      className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                      title="Rechazar"
+                    >
+                      <X size={15} />
+                    </button>
+                    <button
+                      onClick={() => onAceptarReserva?.(r)}
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-colors"
+                      style={{ background: 'var(--cyan)', color: 'var(--dark)' }}
+                      title="Aceptar y crear turno"
+                    >
+                      <Check size={13} />
+                      Aceptar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Modales de acceso rápido */}
       {showTurnoForm && (
