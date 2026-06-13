@@ -158,6 +158,61 @@ export async function getLogosFromDB(): Promise<{ logoApp: string; logoReceta: s
   };
 }
 
+// ── Booking links ─────────────────────────────────────────────────────────────
+export interface BookingLink {
+  id?: string;
+  slug: string;
+  activo: boolean;
+  mensaje: string;
+}
+
+export async function getBookingLink(): Promise<BookingLink | null> {
+  const { data } = await supabase.from('booking_links').select('*').maybeSingle();
+  if (!data) return null;
+  return { id: data.id, slug: data.slug, activo: data.activo, mensaje: data.mensaje || '' };
+}
+
+export async function saveBookingLink(link: BookingLink): Promise<void> {
+  const userId = await getUserId();
+  const { error } = await supabase.from('booking_links').upsert(
+    { user_id: userId, slug: link.slug, activo: link.activo, mensaje: link.mensaje },
+    { onConflict: 'user_id' }
+  );
+  if (error) throw error;
+}
+
+export interface ReservaPublica {
+  id: string;
+  fecha: string;
+  hora: string;
+  duracion: number;
+  nombre_paciente: string;
+  telefono_paciente: string;
+  motivo: string;
+  estado: string;
+  created_at: string;
+}
+
+export async function getReservasPublicas(): Promise<ReservaPublica[]> {
+  const { data, error } = await supabase
+    .from('reservas_publicas')
+    .select('*')
+    .order('fecha', { ascending: true })
+    .order('hora', { ascending: true });
+  if (error) throw error;
+  return (data || []) as ReservaPublica[];
+}
+
+export async function updateReservaEstado(id: string, estado: string): Promise<void> {
+  const { error } = await supabase.from('reservas_publicas').update({ estado }).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteReservaPublica(id: string): Promise<void> {
+  const { error } = await supabase.from('reservas_publicas').delete().eq('id', id);
+  if (error) throw error;
+}
+
 // ── Carga inicial completa ────────────────────────────────────────────────────
 export async function loadAllData() {
   const [
