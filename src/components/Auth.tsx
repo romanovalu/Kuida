@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { KuidaLogo } from './KuidaLogo';
 
 type Mode = 'login' | 'register' | 'forgot';
 
@@ -47,15 +48,15 @@ export default function Auth() {
       <div className="w-full max-w-sm">
 
         {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-black mx-auto mb-3"
-            style={{ background: 'var(--cyan)', color: 'var(--dark)' }}>G</div>
-          <h1 className="text-xl font-black text-white">GestiónTurnos</h1>
-          <p className="text-xs text-white/40 mt-1">
-            {mode === 'login' ? 'Ingresá a tu espacio de trabajo' :
-             mode === 'register' ? '30 días gratis · Sin tarjeta' :
-             'Recuperar contraseña'}
-          </p>
+        <div className="flex justify-center mb-8">
+          <KuidaLogo
+            dark
+            subtitle={
+              mode === 'login' ? 'Ingresá a tu espacio de trabajo' :
+              mode === 'register' ? '30 días gratis · Sin tarjeta' :
+              'Recuperar contraseña'
+            }
+          />
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

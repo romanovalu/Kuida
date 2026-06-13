@@ -17,6 +17,7 @@ import Reportes from './components/Reportes';
 import ConfigPage from './components/Configuracion';
 import Finanzas from './components/Finanzas';
 import Auth from './components/Auth';
+import { KuidaLogo, KuidaCompact, KuidaIcon } from './components/KuidaLogo';
 import { LayoutDashboard, CalendarDays, Users, ClipboardList, BarChart2, Settings, Wallet, LogOut } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -249,9 +250,8 @@ export default function App() {
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--dark)' }}>
-        <div className="text-center">
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-black mx-auto mb-4"
-            style={{ background: 'var(--cyan)', color: 'var(--dark)' }}>G</div>
+        <div className="flex flex-col items-center gap-4">
+          <KuidaIcon size={56} dark />
           <p className="text-white/40 text-sm">Cargando...</p>
         </div>
       </div>
@@ -263,9 +263,8 @@ export default function App() {
   if (dataLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--dark)' }}>
-        <div className="text-center">
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-black mx-auto mb-4 animate-pulse"
-            style={{ background: 'var(--cyan)', color: 'var(--dark)' }}>G</div>
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-pulse"><KuidaIcon size={56} dark /></div>
           <p className="text-white/40 text-sm">Cargando tu espacio de trabajo...</p>
         </div>
       </div>
@@ -301,12 +300,8 @@ export default function App() {
       <aside className="hidden md:flex flex-col w-56 min-h-screen fixed left-0 top-0 z-10"
         style={{ background: 'var(--dark)', color: 'white' }}>
         <div className="px-5 py-6 border-b border-white/5">
-          <div className="flex items-center gap-2.5 mb-0.5">
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold"
-              style={{ background: 'var(--cyan)', color: 'var(--dark)' }}>G</div>
-            <span className="font-bold text-sm text-white tracking-tight">GestiónTurnos</span>
-          </div>
-          <p className="text-xs mt-2 font-medium truncate" style={{ color: 'var(--cyan)' }}>{config.nombreProfesional}</p>
+          <KuidaCompact dark />
+          <p className="text-xs mt-3 font-medium truncate" style={{ color: 'var(--cyan)' }}>{config.nombreProfesional}</p>
           <p className="text-xs text-white/40 truncate">{config.especialidad}</p>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-0.5">
@@ -336,14 +331,7 @@ export default function App() {
       <main className="flex-1 md:ml-56 pb-24 md:pb-0">
         <header className="md:hidden sticky top-0 z-10 px-4 py-3 flex items-center justify-between border-b border-white/10"
           style={{ background: 'var(--dark)' }}>
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0"
-              style={{ background: 'var(--cyan)', color: 'var(--dark)' }}>G</div>
-            <div>
-              <p className="text-xs font-bold text-white leading-tight">GestiónTurnos</p>
-              <p className="text-[10px]" style={{ color: 'var(--cyan)' }}>{config.nombreProfesional}</p>
-            </div>
-          </div>
+          <KuidaCompact dark />
           <button onClick={() => supabase.auth.signOut()} className="p-2 text-white/30">
             <LogOut size={16} />
           </button>
@@ -405,11 +393,8 @@ function SetupWizard({ onComplete }: { onComplete: (c: Configuracion) => Promise
   return (
     <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--dark)' }}>
       <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-black mx-auto mb-3"
-            style={{ background: 'var(--cyan)', color: 'var(--dark)' }}>G</div>
-          <h1 className="text-xl font-black text-white">GestiónTurnos</h1>
-          <p className="text-xs text-white/40 mt-1">Configuración inicial · Paso {step + 1} de 2</p>
+        <div className="flex justify-center mb-8">
+          <KuidaLogo dark subtitle={`Configuración inicial · Paso ${step + 1} de 2`} />
         </div>
 
         <div className="flex gap-2 mb-8">
