@@ -43,6 +43,7 @@ export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
+  const [showPasswordReset, setShowPasswordReset] = useState(false);
 
   const [page, setPage] = useState<Page>('dashboard');
   const [config, setConfig] = useState<Configuracion>(defaultConfig);
@@ -68,7 +69,14 @@ export default function App() {
       setSession(session);
       setAuthLoading(false);
     });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setSession(session);
+        setShowPasswordReset(true);
+        setAuthLoading(false);
+        return;
+      }
+      setShowPasswordReset(false);
       setSession(session);
       setAuthLoading(false);
     });
@@ -284,6 +292,8 @@ export default function App() {
     );
   }
 
+  if (showPasswordReset) return <PasswordResetForm onDone={() => setShowPasswordReset(false)} />;
+
   if (!session) return <Auth />;
 
   if (dataLoading) {
@@ -396,6 +406,65 @@ export default function App() {
 }
 
 // ── Setup Wizard ──────────────────────────────────────────────────────────────
+
+function PasswordResetForm({ onDone }: { onDone: () => void }) {
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [done, setDone] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password.length < 6) { setError('La contraseña debe tener al menos 6 caracteres'); return; }
+    if (password !== confirm) { setError('Las contraseñas no coinciden'); return; }
+    setLoading(true); setError('');
+    const { error: err } = await supabase.auth.updateUser({ password });
+    if (err) { setError(err.message); setLoading(false); return; }
+    setDone(true);
+    setTimeout(() => { onDone(); }, 2000);
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: '#0D1117' }}>
+      <div className="w-full max-w-sm">
+        <div className="mb-8 flex justify-center"><KuidaLogo dark subtitle="Nueva contraseña" /></div>
+        {done ? (
+          <div className="text-center">
+            <p className="text-green-400 font-bold text-sm">¡Contraseña actualizada! Redirigiendo...</p>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-white/50 uppercase tracking-widest mb-1.5">Nueva contraseña</label>
+              <input
+                type="password" value={password} onChange={e => setPassword(e.target.value)}
+                placeholder="Mínimo 6 caracteres" autoFocus required
+                className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+                style={{ background: 'rgba(255,255,255,0.07)', border: '1.5px solid rgba(255,255,255,0.1)', color: 'white' }}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-white/50 uppercase tracking-widest mb-1.5">Repetir contraseña</label>
+              <input
+                type="password" value={confirm} onChange={e => setConfirm(e.target.value)}
+                placeholder="Repetí la contraseña" required
+                className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+                style={{ background: 'rgba(255,255,255,0.07)', border: '1.5px solid rgba(255,255,255,0.1)', color: 'white' }}
+              />
+            </div>
+            {error && <p className="text-red-400 text-xs bg-red-950/50 px-3 py-2 rounded-xl">{error}</p>}
+            <button type="submit" disabled={loading}
+              className="w-full py-3 rounded-full text-sm font-extrabold transition-opacity"
+              style={{ background: 'var(--cyan)', color: '#0D1117', opacity: loading ? 0.6 : 1 }}>
+              {loading ? 'Guardando...' : 'Cambiar contraseña'}
+            </button>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function SetupWizard({ onComplete }: { onComplete: (c: Configuracion) => Promise<void> }) {
   const [step, setStep] = useState(0);
