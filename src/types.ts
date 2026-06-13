@@ -62,8 +62,9 @@ export interface HorarioBloqueado {
 }
 
 export interface ConfigApariencia {
-  accentColor: string;   // hex, e.g. #0CCEDD
-  darkColor: string;     // hex, e.g. #0D1117
+  accentColor: string;
+  darkColor: string;
+  tema?: 'oscuro' | 'claro';
 }
 
 export interface ConfigRecetario {

@@ -118,7 +118,7 @@ export default function App() {
 
       if (data.config) {
         setConfig(data.config);
-        if (data.config.apariencia) applyTheme(data.config.apariencia.accentColor, data.config.apariencia.darkColor);
+        if (data.config.apariencia) applyTheme(data.config.apariencia.accentColor, data.config.apariencia.darkColor, data.config.apariencia.tema);
         setShowSetup(!data.config.setupDone);
       } else {
         setShowSetup(true);
@@ -216,7 +216,7 @@ export default function App() {
 
   const handleSaveConfig = useCallback((c: Configuracion) => {
     setConfig(c);
-    if (c.apariencia) applyTheme(c.apariencia.accentColor, c.apariencia.darkColor);
+    if (c.apariencia) applyTheme(c.apariencia.accentColor, c.apariencia.darkColor, c.apariencia.tema);
     db.saveConfigToDB(c, getLogoApp() || undefined, getLogoReceta() || undefined).catch(console.error);
   }, []);
 
@@ -356,11 +356,11 @@ export default function App() {
     <div className="min-h-screen flex" style={{ background: 'var(--surface)' }}>
       {/* Sidebar */}
       <aside className="hidden md:flex flex-col w-56 min-h-screen fixed left-0 top-0 z-10"
-        style={{ background: 'var(--dark)', color: 'white' }}>
-        <div className="px-5 py-6 border-b border-white/5">
+        style={{ background: 'var(--ui-bg)', borderRight: '1px solid var(--ui-border)' }}>
+        <div className="px-5 py-6" style={{ borderBottom: '1px solid var(--ui-border)' }}>
           <KuidaCompact dark />
           <p className="text-xs mt-3 font-medium truncate" style={{ color: 'var(--cyan)' }}>{config.nombreProfesional}</p>
-          <p className="text-xs text-white/40 truncate">{config.especialidad}</p>
+          <p className="text-xs truncate" style={{ color: 'var(--ui-text-muted)' }}>{config.especialidad}</p>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-0.5">
           {navItems(config.rubro).map(({ id, label, Icon }) => {
@@ -368,29 +368,32 @@ export default function App() {
             return (
               <button key={id} onClick={() => setPage(id)}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
-                style={active ? { background: 'var(--cyan)', color: 'var(--dark)' } : { color: 'rgba(255,255,255,0.5)' }}
-                onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.color = 'white'; }}
-                onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.5)'; }}>
+                style={active ? { background: 'var(--ui-active-bg)', color: 'var(--ui-active-text)' } : { color: 'var(--ui-text-muted)' }}
+                onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.color = 'var(--ui-text)'; }}
+                onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.color = 'var(--ui-text-muted)'; }}>
                 <Icon size={16} strokeWidth={active ? 2.5 : 2} />{label}
               </button>
             );
           })}
         </nav>
-        <div className="px-4 py-4 border-t border-white/5">
+        <div className="px-4 py-4" style={{ borderTop: '1px solid var(--ui-border)' }}>
           <button
             onClick={() => supabase.auth.signOut()}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-white/30 hover:text-white/70 transition-colors">
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-colors"
+            style={{ color: 'var(--ui-text-muted)' }}
+            onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'var(--ui-text)'}
+            onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'var(--ui-text-muted)'}>
             <LogOut size={14} /> Cerrar sesión
           </button>
-          <p className="text-[10px] text-white/20 tracking-wide mt-2 px-3">v2.0</p>
+          <p className="text-[10px] tracking-wide mt-2 px-3" style={{ color: 'var(--ui-border)' }}>v2.0</p>
         </div>
       </aside>
 
       <main className="flex-1 md:ml-56 pb-24 md:pb-0">
-        <header className="md:hidden sticky top-0 z-10 px-4 py-3 flex items-center justify-between border-b border-white/10"
-          style={{ background: 'var(--dark)' }}>
+        <header className="md:hidden sticky top-0 z-10 px-4 py-3 flex items-center justify-between"
+          style={{ background: 'var(--ui-bg)', borderBottom: '1px solid var(--ui-border)' }}>
           <KuidaCompact dark />
-          <button onClick={() => supabase.auth.signOut()} className="p-2 text-white/30">
+          <button onClick={() => supabase.auth.signOut()} className="p-2" style={{ color: 'var(--ui-text-muted)' }}>
             <LogOut size={16} />
           </button>
         </header>
@@ -407,15 +410,15 @@ export default function App() {
       </main>
 
       {/* Bottom nav mobile */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-10 border-t border-white/10"
-        style={{ background: 'var(--dark)' }}>
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-10"
+        style={{ background: 'var(--ui-bg)', borderTop: '1px solid var(--ui-border)' }}>
         <div className="flex">
           {navItems(config.rubro).map(({ id, label, Icon }) => {
             const active = page === id;
             return (
               <button key={id} onClick={() => setPage(id)}
                 className="flex-1 flex flex-col items-center py-3 gap-1 transition-colors"
-                style={{ color: active ? 'var(--cyan)' : 'rgba(255,255,255,0.4)' }}>
+                style={{ color: active ? 'var(--cyan)' : 'var(--ui-text-muted)' }}>
                 <Icon size={18} strokeWidth={active ? 2.5 : 1.75} />
                 <span className="text-[9px] font-semibold tracking-wide">{label}</span>
               </button>

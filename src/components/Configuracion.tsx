@@ -82,7 +82,7 @@ export default function Configuracion({ config, onSave, onResetSetup }: Props) {
   const setApariencia = (partial: Partial<ConfigApariencia>) => {
     const next = { ...form.apariencia, ...partial };
     setForm(f => ({ ...f, apariencia: next }));
-    applyTheme(next.accentColor, next.darkColor);
+    applyTheme(next.accentColor, next.darkColor, next.tema);
   };
 
   const handleLogoUpload = (file: File, tipo: 'app' | 'receta') => {
@@ -118,9 +118,9 @@ export default function Configuracion({ config, onSave, onResetSetup }: Props) {
 
   return (
     <div className="space-y-5">
-      <div className="rounded-2xl px-5 py-5" style={{ background: 'var(--dark)' }}>
+      <div className="rounded-2xl px-5 py-5" style={{ background: 'var(--ui-bg)' }}>
         <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--cyan)' }}>Ajustes</p>
-        <h1 className="text-2xl font-extrabold text-white tracking-tight">Configuración</h1>
+        <h1 className="text-2xl font-extrabold tracking-tight" style={{ color: 'var(--ui-text)' }}>Configuración</h1>
       </div>
 
       {/* Rubro */}
@@ -282,11 +282,28 @@ export default function Configuracion({ config, onSave, onResetSetup }: Props) {
             </div>
           </div>
 
+          {/* Tema claro / oscuro */}
+          <div>
+            <Label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 block">Tema de la interfaz</Label>
+            <div className="grid grid-cols-2 gap-2">
+              {(['oscuro', 'claro'] as const).map(t => {
+                const active = (form.apariencia.tema ?? 'oscuro') === t;
+                return (
+                  <button key={t} onClick={() => setApariencia({ tema: t })}
+                    className="flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 text-sm font-bold transition-all"
+                    style={active ? { borderColor: 'var(--cyan)', background: 'var(--cyan-light)', color: 'var(--cyan-dark)' } : { borderColor: '#E5E7EB', color: '#9CA3AF' }}>
+                    {t === 'oscuro' ? '🌙' : '☀️'} {t.charAt(0).toUpperCase() + t.slice(1)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Preview */}
           <div className="rounded-xl overflow-hidden border border-gray-100">
             <div className="px-4 py-3 flex items-center gap-3" style={{ background: form.apariencia.darkColor }}>
-              <div className="w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black" style={{ background: form.apariencia.accentColor, color: form.apariencia.darkColor }}>G</div>
-              <span className="text-xs font-bold text-white">GestiónTurnos</span>
+              <div className="w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black" style={{ background: form.apariencia.accentColor, color: form.apariencia.darkColor }}>K</div>
+              <span className="text-xs font-bold text-white">kuida</span>
               <div className="ml-auto px-2.5 py-1 rounded-full text-[10px] font-bold" style={{ background: form.apariencia.accentColor, color: form.apariencia.darkColor }}>Activo</div>
             </div>
           </div>

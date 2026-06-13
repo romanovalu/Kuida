@@ -66,7 +66,7 @@ export default function Dashboard({ turnos, pacientes, bloqueados, config, onNav
     <div className="space-y-6">
 
       {/* Hero */}
-      <div className="rounded-2xl px-6 py-6" style={{ background: 'var(--dark)' }}>
+      <div className="rounded-2xl px-6 py-6" style={{ background: 'var(--ui-bg)' }}>
         <p className="text-xs font-semibold uppercase tracking-widest mb-1 capitalize" style={{ color: 'var(--cyan)' }}>
           {fechaHoy}
         </p>

@@ -27,7 +27,7 @@
     --ring: 187 90% 45%;
     --radius: 0.75rem;
 
-    /* Curadent custom tokens */
+    /* Kuida custom tokens */
     --cyan: #0CCEDD;
     --cyan-dark: #09A8B8;
     --cyan-light: #E6F9FB;
@@ -35,6 +35,26 @@
     --dark: #0D1117;
     --dark-2: #161C26;
     --surface: #E8EDEF;
+
+    /* UI chrome — oscuro por defecto */
+    --ui-bg: #0D1117;
+    --ui-bg-2: #161C26;
+    --ui-text: #FFFFFF;
+    --ui-text-muted: rgba(255,255,255,0.45);
+    --ui-border: rgba(255,255,255,0.08);
+    --ui-active-bg: var(--cyan);
+    --ui-active-text: #0D1117;
+  }
+
+  html[data-theme="claro"] {
+    --ui-bg: #FFFFFF;
+    --ui-bg-2: #F3F4F6;
+    --ui-text: #0D1117;
+    --ui-text-muted: rgba(0,0,0,0.4);
+    --ui-border: rgba(0,0,0,0.07);
+    --ui-active-bg: var(--cyan);
+    --ui-active-text: #0D1117;
+    --surface: #F0F2F5;
   }
 }
 

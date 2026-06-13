@@ -3,25 +3,15 @@ interface Props {
   dark?: boolean;
 }
 
-export function KuidaIcon({ size = 56, dark = false }: Props) {
-  const bg = dark ? '#0D1117' : '#0CCEDD';
-  const leaf = dark ? '#0CCEDD' : 'white';
-  const vein = dark ? '#0D1117' : '#0CCEDD';
-  const r = size * 0.2;
-
+export function KuidaIcon({ size = 56 }: { size?: number }) {
+  const r = size * 0.22;
   return (
     <svg width={size} height={size} viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="56" height="56" rx={r} fill={bg} />
-      <path
-        d="M28 10 C28 10 10 20 10 34 C10 43 18 50 28 50 C38 50 46 43 46 34 C46 20 28 10 28 10 Z"
-        fill={leaf}
-        opacity="0.97"
-      />
-      <line x1="28" y1="14" x2="28" y2="46" stroke={vein} strokeWidth="2" strokeLinecap="round" />
-      <line x1="28" y1="28" x2="20" y2="35" stroke={vein} strokeWidth="1.5" strokeLinecap="round" />
-      <line x1="28" y1="34" x2="20" y2="41" stroke={vein} strokeWidth="1.5" strokeLinecap="round" />
-      <line x1="28" y1="28" x2="36" y2="35" stroke={vein} strokeWidth="1.5" strokeLinecap="round" />
-      <line x1="28" y1="34" x2="36" y2="41" stroke={vein} strokeWidth="1.5" strokeLinecap="round" />
+      <rect width="56" height="56" rx={r} fill="#0CCEDD" />
+      <path d="M28 8 C18 14 8 22 8 33 C8 43 17 50 28 50 C39 50 48 43 48 33 C48 22 38 14 28 8 Z" fill="white" />
+      <line x1="28" y1="12" x2="28" y2="38" stroke="#0CCEDD" strokeWidth="2.2" strokeLinecap="round" />
+      <line x1="28" y1="38" x2="20" y2="47" stroke="#0CCEDD" strokeWidth="2.2" strokeLinecap="round" />
+      <line x1="28" y1="38" x2="36" y2="47" stroke="#0CCEDD" strokeWidth="2.2" strokeLinecap="round" />
     </svg>
   );
 }
@@ -32,7 +22,7 @@ export function KuidaLogo({ subtitle, dark = false }: { subtitle?: string; dark?
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-      <KuidaIcon size={56} dark={dark} />
+      <KuidaIcon size={56} />
       <div style={{ textAlign: 'center' }}>
         <div style={{
           fontFamily: "'Arial Black', 'Arial Bold', sans-serif",
@@ -50,7 +40,8 @@ export function KuidaLogo({ subtitle, dark = false }: { subtitle?: string; dark?
             fontSize: 12,
             color: subColor,
             marginTop: 4,
-            letterSpacing: '0.01em',
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase' as const,
           }}>
             {subtitle}
           </div>
@@ -65,7 +56,7 @@ export function KuidaCompact({ dark = false }: { dark?: boolean }) {
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <KuidaIcon size={28} dark={dark} />
+      <KuidaIcon size={28} />
       <span style={{
         fontFamily: "'Arial Black', 'Arial Bold', sans-serif",
         fontWeight: 900,

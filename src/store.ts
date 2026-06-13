@@ -94,7 +94,7 @@ function hslToHex(h: number, s: number, l: number): string {
   return `#${f(0)}${f(8)}${f(4)}`;
 }
 
-export function applyTheme(accentHex: string, darkHex: string) {
+export function applyTheme(accentHex: string, darkHex: string, tema?: 'oscuro' | 'claro') {
   const [h, s, l] = hexToHsl(accentHex);
   const root = document.documentElement;
   root.style.setProperty('--cyan',       accentHex);
@@ -102,9 +102,12 @@ export function applyTheme(accentHex: string, darkHex: string) {
   root.style.setProperty('--cyan-mid',   hslToHex(h, Math.max(s - 10, 20), Math.min(l + 20, 88)));
   root.style.setProperty('--cyan-light', hslToHex(h, Math.max(s - 30, 8),  Math.min(l + 38, 97)));
   root.style.setProperty('--dark',       darkHex);
-  // also update shadcn primary token
-  const [ph, ps, pl] = hexToHsl(accentHex);
-  root.style.setProperty('--primary', `${ph} ${ps}% ${pl}%`);
+  root.style.setProperty('--primary', `${h} ${s}% ${l}%`);
+  if (tema === 'claro') {
+    root.setAttribute('data-theme', 'claro');
+  } else {
+    root.removeAttribute('data-theme');
+  }
 }
 
 // ── Rubro presets ─────────────────────────────────────────────────────────────
