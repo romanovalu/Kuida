@@ -16,14 +16,15 @@ interface Props {
   pacientes: Paciente[];
   turnos: any[];
   pacienteSeleccionado: Paciente | null;
+  turnoPreseleccionado?: { turnoId: string; pacienteId: string; fecha: string } | null;
   onSave: (c: Consulta) => void;
   onDelete: (id: string) => void;
   config: { nombreProfesional: string };
 }
 
-export default function Historial({ consultas, pacientes, pacienteSeleccionado, onSave, onDelete, config }: Props) {
+export default function Historial({ consultas, pacientes, pacienteSeleccionado, turnoPreseleccionado, onSave, onDelete, config }: Props) {
   const [filtroPaciente, setFiltroPaciente] = useState<string>(pacienteSeleccionado?.id || TODOS);
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState(!!turnoPreseleccionado);
   const [editConsulta, setEditConsulta] = useState<Consulta | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
@@ -149,7 +150,8 @@ export default function Historial({ consultas, pacientes, pacienteSeleccionado, 
         <FormConsulta
           consulta={editConsulta}
           pacientes={pacientes}
-          pacientePreseleccionado={filtroReal}
+          pacientePreseleccionado={editConsulta ? editConsulta.pacienteId : (turnoPreseleccionado?.pacienteId || filtroReal)}
+          turnoPreseleccionado={editConsulta ? undefined : turnoPreseleccionado}
           profesional={config.nombreProfesional}
           onSave={c => { onSave(c); setShowForm(false); }}
           onClose={() => setShowForm(false)}
@@ -174,15 +176,17 @@ export default function Historial({ consultas, pacientes, pacienteSeleccionado, 
 
 interface FormProps {
   consulta: Consulta | null; pacientes: Paciente[];
-  pacientePreseleccionado: string; profesional: string;
+  pacientePreseleccionado: string;
+  turnoPreseleccionado?: { turnoId: string; pacienteId: string; fecha: string } | null;
+  profesional: string;
   onSave: (c: Consulta) => void; onClose: () => void;
 }
 
-function FormConsulta({ consulta, pacientes, pacientePreseleccionado, profesional, onSave, onClose }: FormProps) {
+function FormConsulta({ consulta, pacientes, pacientePreseleccionado, turnoPreseleccionado, profesional, onSave, onClose }: FormProps) {
   const today = new Date().toISOString().slice(0, 10);
   const [form, setForm] = useState({
     pacienteId: consulta?.pacienteId || pacientePreseleccionado || '',
-    fecha: consulta?.fecha || today,
+    fecha: consulta?.fecha || turnoPreseleccionado?.fecha || today,
     tratamiento: consulta?.tratamiento || '',
     notas: consulta?.notas || '',
     proximaVisita: consulta?.proximaVisita || '',
@@ -195,7 +199,8 @@ function FormConsulta({ consulta, pacientes, pacientePreseleccionado, profesiona
     setError('');
     onSave({
       id: consulta?.id || uid(),
-      pacienteId: form.pacienteId, turnoId: consulta?.turnoId,
+      pacienteId: form.pacienteId,
+      turnoId: consulta?.turnoId || turnoPreseleccionado?.turnoId,
       fecha: form.fecha, tratamiento: form.tratamiento,
       notas: form.notas, proximaVisita: form.proximaVisita || undefined,
       profesional: consulta?.profesional || profesional,

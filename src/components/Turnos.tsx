@@ -18,6 +18,7 @@ interface Props {
   onUpdateTurno: (t: Turno) => void;
   onSaveBloqueado: (h: HorarioBloqueado) => void;
   onDeleteBloqueado: (id: string) => void;
+  onRegistrarConsulta?: (t: Turno) => void;
 }
 
 const estadoStyle: Record<string, { bg: string; text: string; label: string }> = {
@@ -83,7 +84,7 @@ function slotLibre(
   return true;
 }
 
-export default function Turnos({ turnos, pacientes, bloqueados, config, onSaveTurno, onUpdateTurno, onSaveBloqueado, onDeleteBloqueado }: Props) {
+export default function Turnos({ turnos, pacientes, bloqueados, config, onSaveTurno, onUpdateTurno, onSaveBloqueado, onDeleteBloqueado, onRegistrarConsulta }: Props) {
   const today = new Date().toISOString().slice(0, 10);
   const [fechaFiltro, setFechaFiltro] = useState(today);
   const [estadoFiltro, setEstadoFiltro] = useState<string>('todos');
@@ -225,7 +226,10 @@ export default function Turnos({ turnos, pacientes, bloqueados, config, onSaveTu
                   </div>
                 )}
                 {(cancelado || turno.estado === 'atendido') && (
-                  <div className="flex gap-1.5 mt-2 ml-[72px]">
+                  <div className="flex gap-1.5 mt-2 ml-[72px] flex-wrap">
+                    {turno.estado === 'atendido' && onRegistrarConsulta && (
+                      <ActionChip label="Registrar consulta" color="green" onClick={() => onRegistrarConsulta(turno)} />
+                    )}
                     <ActionChip label="Editar" color="neutral" icon={<Pencil size={11} />} onClick={() => { setEditTurno(turno); setShowForm(true); }} />
                   </div>
                 )}

@@ -182,6 +182,95 @@ export interface NotaClinica {
   createdAt: string;
 }
 
+// Historia Clínica Odontológica (Colegio de Odontólogos de Córdoba)
+export type SiNo = true | false | null;
+
+export interface HCAnt {
+  padreVida: SiNo; padreEnf: string;
+  madreVida: SiNo; madreEnf: string;
+  hermanos: SiNo; hermSanos: string;
+  enfermedad: SiNo; enfermedadCual: string;
+  tratMedico: SiNo; tratCual: string;
+  medicHabitual: string; medic5anos: string;
+  deporte: SiNo; malDeporte: SiNo;
+  alergiaDroga: SiNo; alAnestesia: SiNo; alPenicilina: SiNo; alOtros: string;
+  cicatrizacion: string;
+  colageno: SiNo;
+  fiebreReumatica: SiNo; medFR: string;
+  diabetico: SiNo; diabControl: string;
+  cardiaco: SiNo; cardiacoCual: string;
+  aspirina: SiNo; aspirinFrec: string;
+  presionAlta: SiNo;
+  chagas: SiNo; chagasTrat: string;
+  renales: SiNo;
+  ulcera: SiNo;
+  hepatitis: SiNo; hepatTipo: string;
+  hepatico: SiNo; hepaticoCual: string;
+  convulsiones: SiNo;
+  epileptico: SiNo; epilepMed: string;
+  sifilis: SiNo;
+  infecciosa: SiNo;
+  transfusiones: SiNo;
+  operado: SiNo; operadoCual: string; operadoCuando: string;
+  respiratorio: SiNo; respirCual: string;
+  fuma: SiNo;
+  embarazada: SiNo; embMeses: string;
+  otraEnf: SiNo; otraEnfCual: string;
+  tratAlternativo: string;
+  medicoCabecera: string;
+  hospitalDerivacion: string;
+}
+
+export interface HCOdonto {
+  motivo: string;
+  consultoProfesional: SiNo;
+  tomoMed: SiNo; medNombre: string; desde: string; resultados: SiNo;
+  dolor: SiNo;
+  dSuave: boolean; dModerado: boolean; dIntenso: boolean;
+  dTemporario: boolean; dIntermitente: boolean; dContinuo: boolean;
+  dEspontaneo: boolean; dProvocado: boolean; dFrio: boolean; dCalor: boolean;
+  dLocalizado: boolean; dLocDonde: string;
+  dIrradiado: boolean; dIrrHacia: string;
+  dCalmar: string;
+  golpe: SiNo; golpeCuando: string; golpeComo: string;
+  fractura: SiNo; fracturaCual: string; fracturaTrat: string;
+  difHablar: string; difMasticar: string; difAbrir: string; difTragar: string;
+  labios: string; lengua: string; paladar: string; pisoBoca: string;
+  carrillos: string; rebordes: string; trigono: string; retromolar: string;
+  manchas: SiNo; abultamiento: SiNo; ulceraciones: SiNo; ampollas: SiNo; otrasLesiones: string;
+  sangradoEncias: SiNo; sangradoCuando: string;
+  pus: SiNo; pusDonde: string;
+  movilidad: SiNo; altos: string;
+  hinchada: SiNo; hinchadaQue: string;
+  azucar: string; placa: string;
+  higiene: '' | 'muy_bueno' | 'bueno' | 'deficiente' | 'malo';
+}
+
+export interface HCDiag {
+  sarro: SiNo;
+  periodontal: SiNo;
+  diagnostico: string;
+  plan: string;
+  planFecha: string;
+  observaciones: string;
+  estudios: string;
+  continuaAnexo: string;
+}
+
+export interface HistoriaClinica {
+  id: string;
+  pacienteId: string;
+  tipo: 'general' | 'pcd';
+  fecha: string;
+  lugar: string;
+  nroAfil: string;
+  ant: HCAnt;
+  hco: HCOdonto;
+  diag: HCDiag;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // Historial de servicios (peluquería, estética)
 export interface HistorialServicio {
   id: string;

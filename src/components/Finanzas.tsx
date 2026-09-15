@@ -1,16 +1,17 @@
 import { useState, useMemo } from 'react';
-import type { Cobro, Gasto, Paciente, MetodoPago, TipoComprobante, CategoriaGasto } from '../types';
+import type { Cobro, Gasto, Paciente, Turno, MetodoPago, TipoComprobante, CategoriaGasto } from '../types';
 import { uid } from '../store';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, X, TrendingUp, TrendingDown, DollarSign, FileText, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, X, TrendingUp, TrendingDown, DollarSign, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface Props {
   cobros: Cobro[];
   gastos: Gasto[];
   pacientes: Paciente[];
+  turnos: Turno[];
   onSaveCobro: (c: Cobro) => void;
   onDeleteCobro: (id: string) => void;
   onSaveGasto: (g: Gasto) => void;
@@ -63,7 +64,7 @@ function fmt(n: number) {
   return n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 }
 
-export default function Finanzas({ cobros, gastos, pacientes, onSaveCobro, onDeleteCobro, onSaveGasto, onDeleteGasto }: Props) {
+export default function Finanzas({ cobros, gastos, pacientes, turnos, onSaveCobro, onDeleteCobro, onSaveGasto, onDeleteGasto }: Props) {
   const [tab, setTab] = useState<Tab>('resumen');
   const [showCobroForm, setShowCobroForm] = useState(false);
   const [showGastoForm, setShowGastoForm] = useState(false);
@@ -77,6 +78,7 @@ export default function Finanzas({ cobros, gastos, pacientes, onSaveCobro, onDel
   const balance = totalCobros - totalGastos;
 
   const getPaciente = (id?: string) => id ? pacientes.find(p => p.id === id) : null;
+  const getTurno    = (id?: string) => id ? turnos.find(t => t.id === id) : null;
 
   // Gastos por categoría
   const gastosPorCat = useMemo(() => {
@@ -228,6 +230,7 @@ export default function Finanzas({ cobros, gastos, pacientes, onSaveCobro, onDel
                         {p ? ` · ${p.nombre} ${p.apellido}` : ''}
                         {` · ${metodo}`}
                         {comp && comp !== 'Sin comprobante' ? ` · ${comp}${c.nroComprobante ? ` #${c.nroComprobante}` : ''}` : ''}
+                        {(() => { const t = getTurno(c.turnoId); return t ? ` · turno ${t.hora}hs` : ''; })()}
                       </p>
                       {c.notas && <p className="text-[11px] text-gray-400 mt-0.5">{c.notas}</p>}
                     </div>
@@ -293,7 +296,7 @@ export default function Finanzas({ cobros, gastos, pacientes, onSaveCobro, onDel
       )}
 
       {showCobroForm && (
-        <CobroModal pacientes={pacientes}
+        <CobroModal pacientes={pacientes} turnos={turnos}
           onSave={c => { onSaveCobro(c); setShowCobroForm(false); }}
           onClose={() => setShowCobroForm(false)} />
       )}
@@ -322,12 +325,35 @@ function KpiCard({ label, value, color, Icon }: { label: string; value: number; 
 
 // ── Modal cobro ──────────────────────────────────────────────────────────────
 
-function CobroModal({ pacientes, onSave, onClose }: { pacientes: Paciente[]; onSave: (c: Cobro) => void; onClose: () => void }) {
+function CobroModal({ pacientes, turnos, onSave, onClose }: { pacientes: Paciente[]; turnos: Turno[]; onSave: (c: Cobro) => void; onClose: () => void }) {
   const today = new Date().toISOString().slice(0, 10);
   const [form, setForm] = useState({
     fecha: today, concepto: '', monto: '', metodoPago: 'efectivo' as MetodoPago,
-    pacienteId: '', tipoComprobante: 'recibo' as TipoComprobante, nroComprobante: '', notas: '',
+    pacienteId: '', turnoId: '', tipoComprobante: 'recibo' as TipoComprobante, nroComprobante: '', notas: '',
   });
+
+  const turnosRecientes = useMemo(() => {
+    const hace7dias = new Date(); hace7dias.setDate(hace7dias.getDate() - 7);
+    const limite = hace7dias.toISOString().slice(0, 10);
+    return [...turnos]
+      .filter(t => t.fecha >= limite && t.estado !== 'cancelado')
+      .sort((a, b) => b.fecha.localeCompare(a.fecha) || b.hora.localeCompare(a.hora))
+      .slice(0, 20);
+  }, [turnos]);
+
+  const seleccionarTurno = (turnoId: string) => {
+    if (turnoId === '__ninguno__') { setForm(f => ({ ...f, turnoId: '', pacienteId: '', concepto: '' })); return; }
+    const t = turnos.find(x => x.id === turnoId);
+    if (!t) return;
+    const p = pacientes.find(x => x.id === t.pacienteId);
+    setForm(f => ({
+      ...f,
+      turnoId,
+      pacienteId: t.pacienteId,
+      fecha: t.fecha,
+      concepto: f.concepto || (p ? `Consulta ${p.nombre} ${p.apellido}` : t.motivo),
+    }));
+  };
   const [error, setError] = useState('');
   const [showExtra, setShowExtra] = useState(false);
 
@@ -338,6 +364,7 @@ function CobroModal({ pacientes, onSave, onClose }: { pacientes: Paciente[]; onS
       id: uid(), fecha: form.fecha, concepto: form.concepto.trim(),
       monto: Number(form.monto), metodoPago: form.metodoPago,
       pacienteId: form.pacienteId || undefined,
+      turnoId: form.turnoId || undefined,
       tipoComprobante: form.tipoComprobante,
       nroComprobante: form.nroComprobante || undefined,
       notas: form.notas || undefined,
@@ -372,11 +399,29 @@ function CobroModal({ pacientes, onSave, onClose }: { pacientes: Paciente[]; onS
 
       <button onClick={() => setShowExtra(x => !x)} className="flex items-center gap-1 text-xs font-bold text-gray-400 hover:text-gray-600">
         {showExtra ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-        {showExtra ? 'Menos opciones' : 'Más opciones (paciente, comprobante)'}
+        {showExtra ? 'Menos opciones' : 'Más opciones (turno, paciente, comprobante)'}
       </button>
 
       {showExtra && (
         <>
+          {turnosRecientes.length > 0 && (
+            <Field label="Vincular a turno (opcional)">
+              <Select value={form.turnoId || '__ninguno__'} onValueChange={seleccionarTurno}>
+                <SelectTrigger className="rounded-xl border-gray-200"><SelectValue placeholder="Sin vincular..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__ninguno__">Sin vincular</SelectItem>
+                  {turnosRecientes.map(t => {
+                    const p = pacientes.find(x => x.id === t.pacienteId);
+                    return (
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.fecha} {t.hora}hs · {p ? `${p.nombre} ${p.apellido}` : 'Sin paciente'}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </Field>
+          )}
           <Field label="Paciente (opcional)">
             <Select value={form.pacienteId || '__ninguno__'} onValueChange={v => setForm(f => ({ ...f, pacienteId: v === '__ninguno__' ? '' : v }))}>
               <SelectTrigger className="rounded-xl border-gray-200"><SelectValue placeholder="Sin vincular..." /></SelectTrigger>

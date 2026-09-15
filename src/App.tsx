@@ -18,6 +18,9 @@ import ConfigPage from './components/Configuracion';
 import Finanzas from './components/Finanzas';
 import Auth from './components/Auth';
 import { KuidaLogo, KuidaCompact, KuidaIcon } from './components/KuidaLogo';
+import HistoriaClinicaOdonto from './components/HistoriaClinicaOdonto';
+import ConsentimientoInformado, { SelectorConsentimiento, type TipoConsentimiento } from './components/ConsentimientoInformado';
+import type { HistoriaClinica } from './types';
 import { LayoutDashboard, CalendarDays, Users, ClipboardList, BarChart2, Settings, Wallet, LogOut } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -62,7 +65,13 @@ export default function App() {
   const [historialServicios, setHistorialServicios] = useState<HistorialServicio[]>([]);
   const [recetas, setRecetas] = useState<Receta[]>([]);
   const [pacienteHistorial, setPacienteHistorial] = useState<Paciente | null>(null);
+  const [turnoParaConsulta, setTurnoParaConsulta] = useState<{ turnoId: string; pacienteId: string; fecha: string } | null>(null);
   const [reservasPublicas, setReservasPublicas] = useState<db.ReservaPublica[]>([]);
+  // Historia Clínica & Consentimientos
+  const [hcPaciente, setHcPaciente] = useState<Paciente | null>(null);
+  const [hcData, setHcData] = useState<HistoriaClinica | null>(null);
+  const [ciPaciente, setCiPaciente] = useState<Paciente | null>(null);
+  const [ciTipo, setCiTipo] = useState<TipoConsentimiento | null>(null);
 
   // ── Auth listener ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -179,35 +188,49 @@ export default function App() {
   }, []);
 
   const handleAceptarReserva = useCallback((r: db.ReservaPublica) => {
-    const partes = r.nombre_paciente.trim().split(' ');
-    const nuevoPaciente: Paciente = {
-      id: crypto.randomUUID(),
-      nombre: partes[0] || r.nombre_paciente,
-      apellido: partes.slice(1).join(' ') || '-',
-      edad: 0,
-      telefono: r.telefono_paciente || '',
-      email: '', dni: '', obraSocial: '', alergias: '', antecedentes: '', notasAdicionales: '',
-      fechaRegistro: new Date().toISOString().slice(0, 10),
-    };
+    // Gap 3: buscar paciente existente por teléfono o nombre antes de crear uno nuevo
+    const telNorm = (r.telefono_paciente || '').replace(/\D/g, '');
+    const nombreNorm = r.nombre_paciente.trim().toLowerCase();
+    let paciente = pacientes.find(p => {
+      const pTel = (p.telefono || '').replace(/\D/g, '');
+      return (telNorm && pTel && pTel === telNorm) ||
+        `${p.nombre} ${p.apellido}`.trim().toLowerCase() === nombreNorm;
+    });
+
+    if (!paciente) {
+      const partes = r.nombre_paciente.trim().split(' ');
+      paciente = {
+        id: crypto.randomUUID(),
+        nombre: partes[0] || r.nombre_paciente,
+        apellido: partes.slice(1).join(' ') || '-',
+        edad: 0,
+        telefono: r.telefono_paciente || '',
+        email: '', dni: '', obraSocial: '', alergias: '', antecedentes: '', notasAdicionales: '',
+        fechaRegistro: new Date().toISOString().slice(0, 10),
+      };
+      setPacientes(prev => [...prev, paciente!]);
+      db.upsertPaciente(paciente).catch(console.error);
+    }
+
+    const turnoId = crypto.randomUUID();
     const nuevoTurno: Turno = {
-      id: crypto.randomUUID(),
+      id: turnoId,
       fecha: r.fecha,
       hora: r.hora,
       duracion: r.duracion,
-      pacienteId: nuevoPaciente.id,
+      pacienteId: paciente.id,
       motivo: r.motivo || 'Reserva online',
       estado: 'confirmado',
       profesional: config.nombreProfesional,
       especialidad: config.especialidad,
       createdAt: new Date().toISOString(),
     };
-    setPacientes(prev => [...prev, nuevoPaciente]);
-    db.upsertPaciente(nuevoPaciente).catch(console.error);
     setTurnos(prev => [...prev, nuevoTurno]);
     db.upsertTurno(nuevoTurno).catch(console.error);
     setReservasPublicas(prev => prev.filter(x => x.id !== r.id));
-    db.updateReservaEstado(r.id, 'aceptado').catch(console.error);
-  }, [config]);
+    // Gap 4: guardar turnoId en la reserva al aceptarla
+    db.updateReservaEstado(r.id, 'aceptado', turnoId).catch(console.error);
+  }, [config, pacientes]);
 
   const handleRechazarReserva = useCallback((id: string) => {
     setReservasPublicas(prev => prev.filter(x => x.id !== id));
@@ -297,10 +320,34 @@ export default function App() {
   }, []);
 
   const navToHistorial = useCallback((p: Paciente) => {
-    setPacienteHistorial(p); setPage('historial');
+    setPacienteHistorial(p); setTurnoParaConsulta(null); setPage('historial');
+  }, []);
+
+  const handleRegistrarConsulta = useCallback((t: Turno) => {
+    setTurnoParaConsulta({ turnoId: t.id, pacienteId: t.pacienteId, fecha: t.fecha });
+    setPacienteHistorial(null);
+    setPage('historial');
   }, []);
 
   const navigate = useCallback((p: string) => setPage(p as Page), []);
+
+  const handleOpenHC = useCallback(async (p: Paciente) => {
+    try {
+      const hc = await db.getHistoriaClinica(p.id);
+      setHcData(hc);
+    } catch { setHcData(null); }
+    setHcPaciente(p);
+  }, []);
+
+  const handleSaveHC = useCallback((hc: HistoriaClinica) => {
+    setHcData(hc);
+    db.upsertHistoriaClinica(hc).catch(console.error);
+  }, []);
+
+  const handleOpenCI = useCallback((p: Paciente) => {
+    setCiPaciente(p);
+    setCiTipo(null); // muestra selector primero
+  }, []);
 
   // ── Estados de carga ─────────────────────────────────────────────────────────
   if (authLoading) {
@@ -400,14 +447,47 @@ export default function App() {
 
         <div className="max-w-2xl mx-auto px-4 py-6">
           {page === 'dashboard' && <Dashboard turnos={turnos} pacientes={pacientes} bloqueados={bloqueados} config={config} onNavigate={navigate} onSaveTurno={handleSaveTurno} onSavePaciente={handleSavePaciente} recetas={recetas} onSaveReceta={handleSaveReceta} onDeleteReceta={handleDeleteReceta} reservasPendientes={reservasPublicas} onAceptarReserva={handleAceptarReserva} onRechazarReserva={handleRechazarReserva} />}
-          {page === 'turnos'    && <Turnos turnos={turnos} pacientes={pacientes} bloqueados={bloqueados} config={config} onSaveTurno={handleSaveTurno} onUpdateTurno={handleUpdateTurno} onSaveBloqueado={handleSaveBloqueado} onDeleteBloqueado={handleDeleteBloqueado} />}
-          {page === 'pacientes' && <Pacientes pacientes={pacientes} onSave={handleSavePaciente} onDelete={handleDeletePaciente} onVerHistorial={navToHistorial} config={config} {...profToolsProps} />}
-          {page === 'historial' && <Historial consultas={consultas} pacientes={pacientes} turnos={turnos} pacienteSeleccionado={pacienteHistorial} onSave={handleSaveConsulta} onDelete={handleDeleteConsulta} config={config} />}
-          {page === 'finanzas'  && <Finanzas cobros={cobros} gastos={gastos} pacientes={pacientes} onSaveCobro={handleSaveCobro} onDeleteCobro={handleDeleteCobro} onSaveGasto={handleSaveGasto} onDeleteGasto={handleDeleteGasto} />}
+          {page === 'turnos'    && <Turnos turnos={turnos} pacientes={pacientes} bloqueados={bloqueados} config={config} onSaveTurno={handleSaveTurno} onUpdateTurno={handleUpdateTurno} onSaveBloqueado={handleSaveBloqueado} onDeleteBloqueado={handleDeleteBloqueado} onRegistrarConsulta={handleRegistrarConsulta} />}
+          {page === 'pacientes' && <Pacientes pacientes={pacientes} onSave={handleSavePaciente} onDelete={handleDeletePaciente} onVerHistorial={navToHistorial} config={config} {...profToolsProps} onVerHC={config.rubro === 'odontologia' ? handleOpenHC : undefined} onVerConsentimiento={config.rubro === 'odontologia' ? handleOpenCI : undefined} />}
+          {page === 'historial' && <Historial consultas={consultas} pacientes={pacientes} turnos={turnos} pacienteSeleccionado={pacienteHistorial} turnoPreseleccionado={turnoParaConsulta} onSave={c => { handleSaveConsulta(c); setTurnoParaConsulta(null); }} onDelete={handleDeleteConsulta} config={config} />}
+          {page === 'finanzas'  && <Finanzas cobros={cobros} gastos={gastos} pacientes={pacientes} turnos={turnos} onSaveCobro={handleSaveCobro} onDeleteCobro={handleDeleteCobro} onSaveGasto={handleSaveGasto} onDeleteGasto={handleDeleteGasto} />}
           {page === 'reportes'  && <Reportes turnos={turnos} pacientes={pacientes} consultas={consultas} />}
           {page === 'config'    && <ConfigPage config={config} onSave={handleSaveConfig} onResetSetup={async () => { const c = { ...config, setupDone: false }; await db.saveConfigToDB(c); setShowSetup(true); }} />}
         </div>
       </main>
+
+      {/* Historia Clínica Odontológica */}
+      {hcPaciente && (
+        <HistoriaClinicaOdonto
+          paciente={hcPaciente}
+          config={config}
+          odontograma={odontogramas.find(o => o.pacienteId === hcPaciente.id)}
+          consultas={consultas.filter(c => c.pacienteId === hcPaciente.id)}
+          initialData={hcData}
+          onSave={handleSaveHC}
+          onClose={() => { setHcPaciente(null); setHcData(null); }}
+        />
+      )}
+
+      {/* Consentimientos informados — selector */}
+      {ciPaciente && ciTipo === null && (
+        <SelectorConsentimiento
+          paciente={ciPaciente}
+          config={config}
+          onSelect={tipo => setCiTipo(tipo)}
+          onClose={() => setCiPaciente(null)}
+        />
+      )}
+
+      {/* Consentimientos informados — formulario */}
+      {ciPaciente && ciTipo !== null && (
+        <ConsentimientoInformado
+          paciente={ciPaciente}
+          config={config}
+          tipo={ciTipo}
+          onClose={() => { setCiPaciente(null); setCiTipo(null); }}
+        />
+      )}
 
       {/* Bottom nav mobile */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-10"

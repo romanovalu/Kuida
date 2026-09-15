@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Plus, Search, AlertCircle, Pencil, ClipboardList, Trash2, BookUser, FileText, X } from 'lucide-react';
+import { Plus, Search, AlertCircle, Pencil, ClipboardList, Trash2, BookUser, FileText, X, ScrollText, FilePenLine } from 'lucide-react';
 import FichaProfesional from './FichaProfesional';
 import RecetasSection from './RecetaModal';
 
@@ -30,6 +30,8 @@ interface Props {
   recetas?: Receta[];
   onSaveReceta?: (r: Receta) => void;
   onDeleteReceta?: (id: string) => void;
+  onVerHC?: (p: Paciente) => void;
+  onVerConsentimiento?: (p: Paciente) => void;
 }
 
 const emptyForm = (): Omit<Paciente, 'id' | 'fechaRegistro'> => ({
@@ -53,7 +55,7 @@ function terminologia(rubro?: string) {
   };
 }
 
-export default function Pacientes({ pacientes, onSave, onDelete, onVerHistorial, config, odontogramas = [], mediciones = [], notasClinicas = [], historialServicios = [], recetas = [], onSaveOdontograma, onSaveMedicion, onDeleteMedicion, onSaveNota, onDeleteNota, onSaveServicioHist, onDeleteServicioHist, onSaveReceta, onDeleteReceta }: Props) {
+export default function Pacientes({ pacientes, onSave, onDelete, onVerHistorial, config, odontogramas = [], mediciones = [], notasClinicas = [], historialServicios = [], recetas = [], onSaveOdontograma, onSaveMedicion, onDeleteMedicion, onSaveNota, onDeleteNota, onSaveServicioHist, onDeleteServicioHist, onSaveReceta, onDeleteReceta, onVerHC, onVerConsentimiento }: Props) {
   const [busqueda, setBusqueda] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editPaciente, setEditPaciente] = useState<Paciente | null>(null);
@@ -65,6 +67,8 @@ export default function Pacientes({ pacientes, onSave, onDelete, onVerHistorial,
   const t = terminologia(config?.rubro);
   const showFichaBtn = config && RUBROS_CON_FICHA.includes(config.rubro);
   const showRecetaBtn = config && RUBROS_CON_RECETA.includes(config.rubro);
+  const showHCBtn = config?.rubro === 'odontologia';
+  const showCIBtn = config?.rubro === 'odontologia';
 
   const filtrados = pacientes.filter(p =>
     `${p.nombre} ${p.apellido} ${p.dni} ${p.telefono}`.toLowerCase().includes(busqueda.toLowerCase())
@@ -129,6 +133,8 @@ export default function Pacientes({ pacientes, onSave, onDelete, onVerHistorial,
                 <Chip label="Historial" icon={<ClipboardList size={11} />} onClick={() => onVerHistorial(p)} />
                 {showRecetaBtn && <Chip label="Receta" icon={<FileText size={11} />} onClick={() => setRecetaP(p)} color="cyan" />}
                 {showFichaBtn && <Chip label={t.ficha} icon={<BookUser size={11} />} onClick={() => setFichaP(p)} />}
+                {showHCBtn && onVerHC && <Chip label="Historia Clínica" icon={<ScrollText size={11} />} onClick={() => onVerHC(p)} color="cyan" />}
+                {showCIBtn && onVerConsentimiento && <Chip label="Consentimiento" icon={<FilePenLine size={11} />} onClick={() => onVerConsentimiento(p)} />}
                 <Chip label="" icon={<Trash2 size={11} />} onClick={() => setConfirmDelete(p)} color="red" />
               </div>
             </div>

@@ -2,7 +2,7 @@ import { supabase } from './supabase';
 import type {
   Paciente, Turno, Consulta, HorarioBloqueado,
   Cobro, Gasto, Receta, Odontograma, Medicion,
-  NotaClinica, HistorialServicio, Configuracion,
+  NotaClinica, HistorialServicio, Configuracion, HistoriaClinica,
 } from '../types';
 
 // ── Case conversion ───────────────────────────────────────────────────────────
@@ -203,13 +203,59 @@ export async function getReservasPublicas(): Promise<ReservaPublica[]> {
   return (data || []) as ReservaPublica[];
 }
 
-export async function updateReservaEstado(id: string, estado: string): Promise<void> {
-  const { error } = await supabase.from('reservas_publicas').update({ estado }).eq('id', id);
+export async function updateReservaEstado(id: string, estado: string, turnoId?: string): Promise<void> {
+  const payload: Record<string, unknown> = { estado };
+  if (turnoId) payload.turno_id = turnoId;
+  const { error } = await supabase.from('reservas_publicas').update(payload).eq('id', id);
   if (error) throw error;
 }
 
 export async function deleteReservaPublica(id: string): Promise<void> {
   const { error } = await supabase.from('reservas_publicas').delete().eq('id', id);
+  if (error) throw error;
+}
+
+// ── Historia Clínica Odontológica ─────────────────────────────────────────────
+
+export async function getHistoriaClinica(pacienteId: string): Promise<HistoriaClinica | null> {
+  const { data, error } = await supabase
+    .from('historias_clinicas')
+    .select('*')
+    .eq('paciente_id', pacienteId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  return {
+    id: data.id,
+    pacienteId: data.paciente_id,
+    tipo: data.tipo || 'general',
+    fecha: data.fecha || '',
+    lugar: data.lugar || '',
+    nroAfil: data.nro_afil || '',
+    ant: data.ant || {},
+    hco: data.hco || {},
+    diag: data.diag || {},
+    createdAt: data.created_at || '',
+    updatedAt: data.updated_at || '',
+  } as HistoriaClinica;
+}
+
+export async function upsertHistoriaClinica(hc: HistoriaClinica): Promise<void> {
+  const userId = await getUserId();
+  const row = {
+    id: hc.id,
+    user_id: userId,
+    paciente_id: hc.pacienteId,
+    tipo: hc.tipo,
+    fecha: hc.fecha,
+    lugar: hc.lugar,
+    nro_afil: hc.nroAfil,
+    ant: hc.ant,
+    hco: hc.hco,
+    diag: hc.diag,
+    updated_at: new Date().toISOString(),
+  };
+  const { error } = await supabase.from('historias_clinicas').upsert(row, { onConflict: 'id' });
   if (error) throw error;
 }
 
