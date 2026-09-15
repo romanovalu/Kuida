@@ -7,6 +7,11 @@ import { FormPaciente } from './Pacientes';
 import RecetasSection from './RecetaModal';
 
 const RUBROS_CON_RECETA = ['odontologia','medicina','psicologia','psicopedagogia','kinesiologia'];
+const RUBROS_CLIENTE    = ['peluqueria','estetica'];
+
+function labelPersona(rubro: string) {
+  return RUBROS_CLIENTE.includes(rubro) ? 'cliente' : 'paciente';
+}
 
 interface Props {
   turnos: Turno[];
@@ -78,7 +83,7 @@ export default function Dashboard({ turnos, pacientes, bloqueados, config, onNav
         <div className="grid grid-cols-2 gap-2">
           {[
             { label: 'Nuevo turno',    Icon: CalendarPlus,  action: () => setShowTurnoForm(true),    show: true },
-            { label: 'Nuevo paciente', Icon: UserPlus,       action: () => setShowPacienteForm(true), show: true },
+            { label: `Nuevo ${labelPersona(config.rubro)}`, Icon: UserPlus, action: () => setShowPacienteForm(true), show: true },
             { label: 'Nueva receta',   Icon: FileText,       action: () => setShowRecetaForm(true),   show: showRecetaBtn },
             { label: 'Historial',      Icon: ClipboardList,  action: () => onNavigate('historial'),   show: true },
             { label: 'Reportes',       Icon: BarChart2,      action: () => onNavigate('reportes'),    show: !showRecetaBtn },
@@ -101,7 +106,7 @@ export default function Dashboard({ turnos, pacientes, bloqueados, config, onNav
         <StatCard label="Turnos hoy"  value={stats.hoy}         sub="total"         Icon={Clock}        color="var(--cyan)" />
         <StatCard label="Pendientes"  value={stats.pendientes}  sub="sin confirmar" Icon={AlertCircle}  color="#F59E0B" />
         <StatCard label="Confirmados" value={stats.confirmados} sub="listos"        Icon={CheckCircle2} color="#22C55E" />
-        <StatCard label="Pacientes"   value={stats.pacientes}   sub="registrados"   Icon={Users}        color="#818CF8" />
+        <StatCard label={`${labelPersona(config.rubro).charAt(0).toUpperCase() + labelPersona(config.rubro).slice(1)}s`} value={stats.pacientes} sub="registrados" Icon={Users} color="#818CF8" />
       </div>
 
       {/* Agenda hoy */}
@@ -244,7 +249,7 @@ export default function Dashboard({ turnos, pacientes, bloqueados, config, onNav
                 <p className="text-sm text-gray-400 mt-0.5">
                   {recetaPacienteId
                     ? (() => { const p = pacientes.find(x => x.id === recetaPacienteId); return p ? `${p.nombre} ${p.apellido}` : ''; })()
-                    : 'Seleccioná un paciente'}
+                    : `Seleccioná un ${labelPersona(config.rubro)}`}
                 </p>
               </div>
               <button onClick={() => setShowRecetaForm(false)} className="p-2 rounded-xl text-gray-400 hover:text-gray-600"><X size={18} /></button>
@@ -253,8 +258,8 @@ export default function Dashboard({ turnos, pacientes, bloqueados, config, onNav
             {/* Selector de paciente */}
             {!recetaPacienteId ? (
               <div className="flex-1 overflow-y-auto px-5 py-4 space-y-2">
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">¿Para qué paciente?</p>
-                {pacientes.length === 0 && <p className="text-xs text-gray-400">No hay pacientes registrados.</p>}
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">¿Para qué {labelPersona(config.rubro)}?</p>
+                {pacientes.length === 0 && <p className="text-xs text-gray-400">No hay {labelPersona(config.rubro)}s registrados.</p>}
                 {pacientes.map(p => (
                   <button key={p.id} onClick={() => setRecetaPacienteId(p.id)}
                     className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left hover:bg-gray-50 transition-colors border border-gray-100">
