@@ -7,7 +7,7 @@ import { FormPaciente } from './Pacientes';
 import RecetasSection from './RecetaModal';
 
 const RUBROS_CON_RECETA = ['odontologia','medicina','psicologia','psicopedagogia','kinesiologia'];
-const RUBROS_CLIENTE    = ['peluqueria','estetica'];
+const RUBROS_CLIENTE    = ['peluqueria','estetica','otro'];
 
 function labelPersona(rubro: string) {
   return RUBROS_CLIENTE.includes(rubro) ? 'cliente' : 'paciente';
