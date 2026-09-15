@@ -199,7 +199,7 @@ export function getConfig(): Configuracion {
 export function saveConfig(c: Configuracion) { localStorage.setItem(KEYS.config, JSON.stringify(c)); }
 
 export function uid(): string {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  return crypto.randomUUID();
 }
 
 export function initSampleData(config: Configuracion) {
