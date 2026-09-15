@@ -235,8 +235,9 @@ export default function ConsentimientoInformado({ paciente, config, tipo, onClos
     style.id = 'ci-print-style';
     style.textContent = `
       @media print {
-        body > * { display: none !important; }
-        #ci-print-root { display: block !important; }
+        body * { visibility: hidden !important; }
+        #ci-print-root, #ci-print-root * { visibility: visible !important; }
+        #ci-print-root { display: block !important; position: fixed; top: 0; left: 0; width: 100%; }
         @page { size: A4; margin: 12mm 14mm; }
       }
     `;

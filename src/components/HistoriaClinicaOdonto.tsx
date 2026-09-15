@@ -116,74 +116,71 @@ function TxtInput({ value, onChange, placeholder = '', multiline = false }: { va
     : <Input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} className={cls} />;
 }
 
-// ── Odontograma SVG para impresión ───────────────────────────────────────────
+// ── Odontograma SVG oficial (formato cuadrados clásico) ───────────────────────
 
-const DIENTES_ADULTO_SUP = [18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28];
-const DIENTES_ADULTO_INF = [48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38];
-const DIENTES_NINO_SUP = [55,54,53,52,51,61,62,63,64,65];
-const DIENTES_NINO_INF = [85,84,83,82,81,71,72,73,74,75];
+const S = 18; // tamaño de cada diente en px
 
-type TratColor = '' | 'caries' | 'restauracion' | 'corona' | 'fractura' | 'sellador' | 'endodoncia';
-const COLORES: Record<string, string> = {
-  caries: '#dc2626', restauracion: '#2563eb', corona: '#7c3aed',
-  fractura: '#d97706', sellador: '#059669', endodoncia: '#db2777', '': 'white',
-};
-
-function ToothSVG({ num, estado }: { num: number; estado?: { ausente?: boolean; implante?: boolean; caras: Partial<Record<string, TratColor>>; nota?: string } }) {
-  const s = 16; // size
-  const c = s / 2;
-  const p = 3;  // padding
-  const caras = estado?.caras || {};
-  const colFor = (cara: string) => COLORES[caras[cara] || ''] || 'white';
-
-  if (estado?.ausente) {
-    return (
-      <svg width={s} height={s + 10} viewBox={`0 0 ${s} ${s + 10}`}>
-        <text x={c} y={s - 2} textAnchor="middle" fontSize="6" fill="#666">{num}</text>
-        <line x1={p} y1={p + 10} x2={s - p} y2={s - 2 + 10} stroke="#dc2626" strokeWidth="1.5" />
-        <line x1={s - p} y1={p + 10} x2={p} y2={s - 2 + 10} stroke="#dc2626" strokeWidth="1.5" />
-      </svg>
-    );
-  }
-
+function ToothCell({ num, ausente }: { num: number; ausente?: boolean }) {
+  // Cuadrado exterior + cuadrado interior (estilo oficial)
+  const m = 2; // margen
+  const inner = 5; // distancia al cuadrado interno
   return (
-    <svg width={s} height={s + 10} viewBox={`0 0 ${s} ${s + 10}`}>
-      <text x={c} y={8} textAnchor="middle" fontSize="6" fill="#444">{num}</text>
-      {/* Cara oclusal (centro) */}
-      <rect x={5} y={12} width={6} height={6} fill={colFor('oclusal')} stroke="#555" strokeWidth="0.5" />
-      {/* Vestibular (top) */}
-      <polygon points={`${c},${9 + 3} ${3},${12 + 2} ${s-3},${12 + 2}`} fill={colFor('vestibular')} stroke="#555" strokeWidth="0.5" />
-      {/* Lingual (bottom) */}
-      <polygon points={`${c},${s + 9} ${3},${18 + 2} ${s-3},${18 + 2}`} fill={colFor('lingual')} stroke="#555" strokeWidth="0.5" />
-      {/* Mesial (left) */}
-      <polygon points={`${2},${c + 8} ${5},${12 + 1} ${5},${18 + 1}`} fill={colFor('mesial')} stroke="#555" strokeWidth="0.5" />
-      {/* Distal (right) */}
-      <polygon points={`${s-2},${c + 8} ${s-5},${12 + 1} ${s-5},${18 + 1}`} fill={colFor('distal')} stroke="#555" strokeWidth="0.5" />
+    <svg width={S} height={S + 9} viewBox={`0 0 ${S} ${S + 9}`} style={{ display: 'block' }}>
+      {/* número */}
+      <text x={S/2} y={7} textAnchor="middle" fontSize="6.5" fill="#000" fontFamily="Arial">{num}</text>
+      {/* cuadrado exterior */}
+      <rect x={m} y={9} width={S - m*2} height={S - m*2} fill="white" stroke="#000" strokeWidth="0.8" />
+      {/* cuadrado interior (oclusal) */}
+      <rect x={m + inner} y={9 + inner} width={S - m*2 - inner*2} height={S - m*2 - inner*2} fill="white" stroke="#000" strokeWidth="0.8" />
+      {/* líneas que unen vértices (triángulos vestibular/lingual/mesial/distal) */}
+      <line x1={m} y1={9} x2={m + inner} y2={9 + inner} stroke="#000" strokeWidth="0.6" />
+      <line x1={S-m} y1={9} x2={S-m-inner} y2={9+inner} stroke="#000" strokeWidth="0.6" />
+      <line x1={m} y1={S+9-m} x2={m+inner} y2={S+9-m-inner} stroke="#000" strokeWidth="0.6" />
+      <line x1={S-m} y1={S+9-m} x2={S-m-inner} y2={S+9-m-inner} stroke="#000" strokeWidth="0.6" />
+      {/* X si ausente */}
+      {ausente && <>
+        <line x1={m+1} y1={10} x2={S-m-1} y2={S+7} stroke="#000" strokeWidth="1" />
+        <line x1={S-m-1} y1={10} x2={m+1} y2={S+7} stroke="#000" strokeWidth="1" />
+      </>}
     </svg>
   );
 }
 
 function OdontogramaPrint({ odontograma }: { odontograma?: Odontograma }) {
-  const get = (num: number) => odontograma?.dientes?.[String(num)];
-  const Row = ({ nums }: { nums: number[] }) => (
-    <div className="flex gap-0.5 justify-center">
-      {nums.map(n => <ToothSVG key={n} num={n} estado={get(n) as any} />)}
+  const ausente = (num: number) => odontograma?.dientes?.[String(num)]?.ausente;
+
+  const rowStyle: React.CSSProperties = { display: 'flex', gap: '1px', justifyContent: 'center' };
+
+  // Adulto superior: 18-11 | 21-28
+  const adSup1 = [18,17,16,15,14,13,12,11];
+  const adSup2 = [21,22,23,24,25,26,27,28];
+  // Adulto inferior: 48-41 | 31-38
+  const adInf1 = [48,47,46,45,44,43,42,41];
+  const adInf2 = [31,32,33,34,35,36,37,38];
+  // Niño superior: 55-51 | 61-65
+  const niSup1 = [55,54,53,52,51];
+  const niSup2 = [61,62,63,64,65];
+  // Niño inferior: 85-81 | 71-75
+  const niInf1 = [85,84,83,82,81];
+  const niInf2 = [71,72,73,74,75];
+
+  const Row = ({ left, right, label }: { left: number[]; right: number[]; label?: string }) => (
+    <div style={{ display: 'flex', gap: '2px', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={rowStyle}>{left.map(n => <ToothCell key={n} num={n} ausente={ausente(n)} />)}</div>
+      {label && <div style={{ width: '28px', textAlign: 'center', fontSize: '7pt', color: '#555', fontStyle: 'italic' }}>{label}</div>}
+      <div style={rowStyle}>{right.map(n => <ToothCell key={n} num={n} ausente={ausente(n)} />)}</div>
     </div>
   );
+
   return (
-    <div className="space-y-1">
-      <Row nums={DIENTES_ADULTO_SUP} />
-      <Row nums={DIENTES_ADULTO_INF} />
-      <div className="flex gap-8 justify-center mt-1">
-        <div className="space-y-0.5">
-          <p className="text-[9px] text-center text-gray-500 italic">Derecha</p>
-          <Row nums={DIENTES_NINO_SUP} />
-          <Row nums={DIENTES_NINO_INF} />
-        </div>
-        <div className="space-y-0.5">
-          <p className="text-[9px] text-center text-gray-500 italic">Izquierda</p>
-        </div>
-      </div>
+    <div style={{ fontFamily: 'Arial' }}>
+      <Row left={adSup1} right={adSup2} />
+      <div style={{ height: '2px' }} />
+      <Row left={adInf1} right={adInf2} />
+      <div style={{ height: '6px', borderTop: '1px dashed #bbb', margin: '4px 0' }} />
+      <Row left={niSup1} right={niSup2} label="D   I" />
+      <div style={{ height: '2px' }} />
+      <Row left={niInf1} right={niInf2} />
     </div>
   );
 }
@@ -247,8 +244,10 @@ export default function HistoriaClinicaOdonto({ paciente, config, odontograma, c
     style.id = 'hc-print-style';
     style.textContent = `
       @media print {
-        body > * { display: none !important; }
-        #hc-print-root { display: block !important; }
+        body * { visibility: hidden !important; }
+        #hc-print-root, #hc-print-root * { visibility: visible !important; }
+        #hc-print-root { display: block !important; position: fixed; top: 0; left: 0; width: 100%; }
+        .screen-only { display: none !important; }
         @page { size: A4; margin: 10mm 12mm; }
       }
     `;
