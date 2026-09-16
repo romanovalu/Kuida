@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { Turno, Paciente, HorarioBloqueado, Configuracion, Receta } from '../types';
+import type { Turno, Paciente, HorarioBloqueado, Configuracion, Receta, Vehiculo, OrdenTrabajo } from '../types';
 import type { ReservaPublica } from '../lib/db';
 import { AlertCircle, Clock, CheckCircle2, Users, CalendarPlus, UserPlus, ClipboardList, BarChart2, ArrowRight, FileText, X, Check, Link } from 'lucide-react';
 import { FormTurno } from './Turnos';
@@ -27,6 +27,9 @@ interface Props {
   reservasPendientes?: ReservaPublica[];
   onAceptarReserva?: (r: ReservaPublica) => void;
   onRechazarReserva?: (id: string) => void;
+  // Taller
+  vehiculos?: Vehiculo[];
+  ordenesTrabajo?: OrdenTrabajo[];
 }
 
 const estadoStyle: Record<string, { bg: string; text: string; label: string }> = {
@@ -36,7 +39,7 @@ const estadoStyle: Record<string, { bg: string; text: string; label: string }> =
   cancelado:  { bg: '#F9FAFB', text: '#9CA3AF', label: 'Cancelado' },
 };
 
-export default function Dashboard({ turnos, pacientes, bloqueados, config, onNavigate, onSaveTurno, onSavePaciente, recetas = [], onSaveReceta, onDeleteReceta, reservasPendientes = [], onAceptarReserva, onRechazarReserva }: Props) {
+export default function Dashboard({ turnos, pacientes, bloqueados, config, onNavigate, onSaveTurno, onSavePaciente, recetas = [], onSaveReceta, onDeleteReceta, reservasPendientes = [], onAceptarReserva, onRechazarReserva, vehiculos = [], ordenesTrabajo = [] }: Props) {
   const today = new Date().toISOString().slice(0, 10);
   const [showTurnoForm, setShowTurnoForm] = useState(false);
   const [showPacienteForm, setShowPacienteForm] = useState(false);
@@ -66,6 +69,78 @@ export default function Dashboard({ turnos, pacientes, bloqueados, config, onNav
   const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
   const dias  = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
   const fechaHoy = `${dias[now.getDay()]} ${now.getDate()} de ${meses[now.getMonth()]}`;
+
+  // ── Dashboard Taller ─────────────────────────────────────────────────────────
+  if (config.rubro === 'taller') {
+    const otActivas    = ordenesTrabajo.filter(o => !['entregado','cancelado'].includes(o.estado));
+    const otEnRep      = ordenesTrabajo.filter(o => o.estado === 'en_reparacion');
+    const otListas     = ordenesTrabajo.filter(o => o.estado === 'listo');
+    return (
+      <div className="space-y-6">
+        {/* Hero taller */}
+        <div className="rounded-2xl px-6 py-6" style={{ background: 'var(--ui-bg)' }}>
+          <p className="text-xs font-semibold uppercase tracking-widest mb-1 capitalize" style={{ color: 'var(--cyan)' }}>{fechaHoy}</p>
+          <h1 className="text-2xl font-extrabold text-white tracking-tight leading-tight mb-4">
+            {saludo},<br /><span style={{ color: 'var(--cyan)' }}>{config.nombreProfesional}</span>
+          </h1>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { label: 'Nueva OT',       action: () => onNavigate('ordenes') },
+              { label: 'Nuevo vehículo', action: () => onNavigate('vehiculos') },
+              { label: 'Ver OT activas', action: () => onNavigate('ordenes') },
+              { label: 'Finanzas',       action: () => onNavigate('finanzas') },
+            ].map(({ label, action }) => (
+              <button key={label} onClick={action}
+                className="flex items-center gap-2.5 px-4 py-3 rounded-xl font-bold text-sm transition-opacity hover:opacity-80 text-left"
+                style={{ background: 'var(--cyan)', color: 'var(--dark)' }}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Stats taller */}
+        <div className="grid grid-cols-2 gap-3">
+          <StatCard label="OT activas"    value={otActivas.length}        sub="sin entregar"   Icon={ClipboardList} color="var(--cyan)" />
+          <StatCard label="En reparación" value={otEnRep.length}          sub="en proceso"     Icon={AlertCircle}   color="#F59E0B" />
+          <StatCard label="Listas"        value={otListas.length}         sub="para entregar"  Icon={CheckCircle2}  color="#22C55E" />
+          <StatCard label="Vehículos"     value={vehiculos.length}        sub="registrados"    Icon={Users}         color="#818CF8" />
+        </div>
+
+        {/* OT recientes */}
+        {otActivas.length > 0 && (
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wider">OT activas</h2>
+              <button onClick={() => onNavigate('ordenes')} className="flex items-center gap-1 text-xs font-semibold" style={{ color: 'var(--cyan-dark)' }}>
+                Ver todas <ArrowRight size={13} />
+              </button>
+            </div>
+            <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
+              {otActivas.slice(0, 5).map((ot, i) => {
+                const estadoColors: Record<string, { bg: string; text: string }> = {
+                  recibido:      { bg: '#F3F4F6', text: '#374151' },
+                  diagnostico:   { bg: '#FEF3C7', text: '#92400E' },
+                  en_reparacion: { bg: '#EFF6FF', text: '#1E3A5F' },
+                  listo:         { bg: '#ECFDF5', text: '#064E3B' },
+                };
+                const ec = estadoColors[ot.estado] ?? { bg: '#F3F4F6', text: '#374151' };
+                const labelEstado: Record<string, string> = { recibido: 'Recibido', diagnostico: 'Diagnóstico', en_reparacion: 'En reparación', listo: 'Listo' };
+                return (
+                  <div key={ot.id} className="flex items-center gap-3 px-5 py-3.5" style={{ borderTop: i > 0 ? '1px solid #F3F4F6' : 'none' }}>
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: ec.bg, color: ec.text }}>
+                      {labelEstado[ot.estado] ?? ot.estado}
+                    </span>
+                    <p className="flex-1 text-sm font-semibold truncate" style={{ color: 'var(--dark)' }}>{ot.descripcion}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

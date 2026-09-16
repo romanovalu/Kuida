@@ -486,7 +486,7 @@ export default function App() {
         </header>
 
         <div className="max-w-2xl mx-auto px-4 py-6">
-          {page === 'dashboard' && <Dashboard turnos={turnos} pacientes={pacientes} bloqueados={bloqueados} config={config} onNavigate={navigate} onSaveTurno={handleSaveTurno} onSavePaciente={handleSavePaciente} recetas={recetas} onSaveReceta={handleSaveReceta} onDeleteReceta={handleDeleteReceta} reservasPendientes={reservasPublicas} onAceptarReserva={handleAceptarReserva} onRechazarReserva={handleRechazarReserva} />}
+          {page === 'dashboard' && <Dashboard turnos={turnos} pacientes={pacientes} bloqueados={bloqueados} config={config} onNavigate={navigate} onSaveTurno={handleSaveTurno} onSavePaciente={handleSavePaciente} recetas={recetas} onSaveReceta={handleSaveReceta} onDeleteReceta={handleDeleteReceta} reservasPendientes={reservasPublicas} onAceptarReserva={handleAceptarReserva} onRechazarReserva={handleRechazarReserva} vehiculos={vehiculos} ordenesTrabajo={ordenesTrabajo} />}
           {page === 'turnos'    && <Turnos turnos={turnos} pacientes={pacientes} bloqueados={bloqueados} config={config} onSaveTurno={handleSaveTurno} onUpdateTurno={handleUpdateTurno} onSaveBloqueado={handleSaveBloqueado} onDeleteBloqueado={handleDeleteBloqueado} onRegistrarConsulta={handleRegistrarConsulta} />}
           {page === 'vehiculos' && <Vehiculos vehiculos={vehiculos} clientes={pacientes} onSave={handleSaveVehiculo} onDelete={handleDeleteVehiculo} />}
           {page === 'ordenes'   && <OrdenesTrabajo ordenes={ordenesTrabajo} vehiculos={vehiculos} clientes={pacientes} onSave={handleSaveOrden} onDelete={handleDeleteOrden} />}
