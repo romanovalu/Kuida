@@ -324,7 +324,34 @@ export default function App() {
   }, []);
 
   const handleSaveOrden = useCallback((o: OrdenTrabajo) => {
-    setOrdenesTrabajo(prev => prev.some(x => x.id === o.id) ? prev.map(x => x.id === o.id ? o : x) : [...prev, o]);
+    // Ajustar stock: devolver repuestos viejos, descontar repuestos nuevos
+    setOrdenesTrabajo(prev => {
+      const vieja = prev.find(x => x.id === o.id);
+      const viejosReps = vieja?.repuestos ?? [];
+      const nuevosReps = o.repuestos ?? [];
+      const hayCambio = JSON.stringify(viejosReps) !== JSON.stringify(nuevosReps);
+      if (hayCambio) {
+        setStock(prevStock => {
+          let updated = [...prevStock];
+          // Devolver al stock los repuestos que había antes
+          for (const r of viejosReps) {
+            updated = updated.map(s => s.id === r.stockItemId ? { ...s, cantidad: s.cantidad + r.cantidad } : s);
+          }
+          // Descontar los nuevos
+          for (const r of nuevosReps) {
+            updated = updated.map(s => s.id === r.stockItemId ? { ...s, cantidad: Math.max(0, s.cantidad - r.cantidad) } : s);
+          }
+          // Persistir los ítems modificados
+          const idsAfectados = new Set([...viejosReps.map(r => r.stockItemId), ...nuevosReps.map(r => r.stockItemId)]);
+          for (const id of idsAfectados) {
+            const item = updated.find(s => s.id === id);
+            if (item) db.upsertStockItem(item).catch(console.error);
+          }
+          return updated;
+        });
+      }
+      return prev.some(x => x.id === o.id) ? prev.map(x => x.id === o.id ? o : x) : [...prev, o];
+    });
     db.upsertOrdenTrabajo(o).catch(console.error);
   }, []);
 
@@ -503,7 +530,7 @@ export default function App() {
           {page === 'dashboard' && <Dashboard turnos={turnos} pacientes={pacientes} bloqueados={bloqueados} config={config} onNavigate={navigate} onSaveTurno={handleSaveTurno} onSavePaciente={handleSavePaciente} recetas={recetas} onSaveReceta={handleSaveReceta} onDeleteReceta={handleDeleteReceta} reservasPendientes={reservasPublicas} onAceptarReserva={handleAceptarReserva} onRechazarReserva={handleRechazarReserva} vehiculos={vehiculos} ordenesTrabajo={ordenesTrabajo} />}
           {page === 'turnos'    && <Turnos turnos={turnos} pacientes={pacientes} bloqueados={bloqueados} config={config} onSaveTurno={handleSaveTurno} onUpdateTurno={handleUpdateTurno} onSaveBloqueado={handleSaveBloqueado} onDeleteBloqueado={handleDeleteBloqueado} onRegistrarConsulta={handleRegistrarConsulta} />}
           {page === 'vehiculos' && <Vehiculos vehiculos={vehiculos} clientes={pacientes} onSave={handleSaveVehiculo} onDelete={handleDeleteVehiculo} />}
-          {page === 'ordenes'   && <OrdenesTrabajo ordenes={ordenesTrabajo} vehiculos={vehiculos} clientes={pacientes} onSave={handleSaveOrden} onDelete={handleDeleteOrden} />}
+          {page === 'ordenes'   && <OrdenesTrabajo ordenes={ordenesTrabajo} vehiculos={vehiculos} clientes={pacientes} stock={stock} onSave={handleSaveOrden} onDelete={handleDeleteOrden} onCreateCobro={handleSaveCobro} />}
           {page === 'stock'     && <Stock stock={stock} onSave={handleSaveStockItem} onDelete={handleDeleteStockItem} />}
           {page === 'pacientes' && <Pacientes pacientes={pacientes} onSave={handleSavePaciente} onDelete={handleDeletePaciente} onVerHistorial={navToHistorial} config={config} {...profToolsProps} onVerHC={config.rubro === 'odontologia' ? handleOpenHC : undefined} onVerConsentimiento={config.rubro === 'odontologia' ? handleOpenCI : undefined} />}
           {page === 'historial' && <Historial consultas={consultas} pacientes={pacientes} turnos={turnos} pacienteSeleccionado={pacienteHistorial} turnoPreseleccionado={turnoParaConsulta} onSave={c => { handleSaveConsulta(c); setTurnoParaConsulta(null); }} onDelete={handleDeleteConsulta} config={config} />}

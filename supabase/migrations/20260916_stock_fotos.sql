@@ -23,5 +23,8 @@ create policy "stock_user" on stock
 alter table consultas add column if not exists fotos jsonb default '[]'::jsonb;
 alter table ordenes_trabajo add column if not exists fotos jsonb default '[]'::jsonb;
 
+-- Repuestos en órdenes de trabajo
+alter table ordenes_trabajo add column if not exists repuestos jsonb default '[]'::jsonb;
+
 -- Storage bucket 'fotos' (ejecutar manualmente en Supabase Dashboard > Storage)
 -- create bucket fotos with public = true;

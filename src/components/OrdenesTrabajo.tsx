@@ -1,14 +1,16 @@
 import { useState } from 'react';
-import type { OrdenTrabajo, Vehiculo, Paciente, EstadoOT } from '../types';
-import { ClipboardList, Plus, X, ChevronDown, Pencil, Trash2, DollarSign } from 'lucide-react';
+import type { OrdenTrabajo, Vehiculo, Paciente, EstadoOT, StockItem, Cobro, RepuestoOT } from '../types';
+import { ClipboardList, Plus, X, ChevronDown, Pencil, Trash2, DollarSign, Package } from 'lucide-react';
 import FotosUploader from './FotosUploader';
 
 interface Props {
   ordenes: OrdenTrabajo[];
   vehiculos: Vehiculo[];
   clientes: Paciente[];
+  stock: StockItem[];
   onSave: (o: OrdenTrabajo) => void;
   onDelete: (id: string) => void;
+  onCreateCobro: (c: Cobro) => void;
 }
 
 const ESTADOS: { value: EstadoOT; label: string; color: string; bg: string; light: string }[] = [
@@ -25,25 +27,31 @@ const emptyForm = (): Omit<OrdenTrabajo, 'id' | 'createdAt'> => ({
   fecha: new Date().toISOString().slice(0, 10),
   descripcion: '', diagnostico: '', trabajoRealizado: '',
   presupuesto: undefined, montoFinal: undefined,
-  estado: 'recibido', mecanico: '', notas: '', fotos: [],
+  estado: 'recibido', mecanico: '', notas: '', fotos: [], repuestos: [],
 });
 
-export default function OrdenesTrabajo({ ordenes, vehiculos, clientes, onSave, onDelete }: Props) {
+export default function OrdenesTrabajo({ ordenes, vehiculos, clientes, stock, onSave, onDelete, onCreateCobro }: Props) {
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<OrdenTrabajo | null>(null);
   const [form, setForm] = useState(emptyForm());
   const [confirmarBorrar, setConfirmarBorrar] = useState<string | null>(null);
   const [expandido, setExpandido] = useState<string | null>(null);
   const [filtroEstado, setFiltroEstado] = useState<EstadoOT | 'todos'>('todos');
+  // Oferta de cobro al entregar
+  const [ofrecerCobro, setOfrecerCobro] = useState<OrdenTrabajo | null>(null);
+  // Picker de repuesto en el form
+  const [repStock, setRepStock] = useState('');
+  const [repCant, setRepCant] = useState(1);
 
   const activas = ordenes.filter(o => o.estado !== 'entregado' && o.estado !== 'cancelado');
   const filtradas = filtroEstado === 'todos' ? ordenes : ordenes.filter(o => o.estado === filtroEstado);
   const sorted = [...filtradas].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-  function openNew() { setEditing(null); setForm(emptyForm()); setModal(true); }
+  function openNew() { setEditing(null); setForm(emptyForm()); setRepStock(''); setRepCant(1); setModal(true); }
   function openEdit(o: OrdenTrabajo) {
     setEditing(o);
-    setForm({ vehiculoId: o.vehiculoId, clienteId: o.clienteId, fecha: o.fecha, descripcion: o.descripcion, diagnostico: o.diagnostico, trabajoRealizado: o.trabajoRealizado, presupuesto: o.presupuesto, montoFinal: o.montoFinal, estado: o.estado, mecanico: o.mecanico, notas: o.notas, fotos: o.fotos ?? [] });
+    setForm({ vehiculoId: o.vehiculoId, clienteId: o.clienteId, fecha: o.fecha, descripcion: o.descripcion, diagnostico: o.diagnostico, trabajoRealizado: o.trabajoRealizado, presupuesto: o.presupuesto, montoFinal: o.montoFinal, estado: o.estado, mecanico: o.mecanico, notas: o.notas, fotos: o.fotos ?? [], repuestos: o.repuestos ?? [] });
+    setRepStock(''); setRepCant(1);
     setModal(true);
   }
   function handleVehiculoChange(vehiculoId: string) {
@@ -56,6 +64,50 @@ export default function OrdenesTrabajo({ ordenes, vehiculos, clientes, onSave, o
     setModal(false);
   }
 
+  // Cambio rápido de estado: si es 'entregado' y hay monto, ofrece crear cobro
+  function cambiarEstado(o: OrdenTrabajo, nuevoEstado: EstadoOT) {
+    const updated = { ...o, estado: nuevoEstado };
+    onSave(updated);
+    if (nuevoEstado === 'entregado' && (o.montoFinal ?? o.presupuesto)) {
+      setOfrecerCobro(updated);
+    }
+  }
+
+  // Agregar repuesto al form
+  function addRepuesto() {
+    const item = stock.find(s => s.id === repStock);
+    if (!item || repCant <= 0) return;
+    const rep: RepuestoOT = {
+      stockItemId: item.id,
+      nombre: item.nombre,
+      cantidad: repCant,
+      precioUnitario: item.precioVenta,
+    };
+    setForm(f => ({ ...f, repuestos: [...(f.repuestos ?? []), rep] }));
+    setRepStock(''); setRepCant(1);
+  }
+  function removeRepuesto(idx: number) {
+    setForm(f => ({ ...f, repuestos: (f.repuestos ?? []).filter((_, i) => i !== idx) }));
+  }
+
+  // Crear cobro desde oferta
+  function confirmarCobro(o: OrdenTrabajo) {
+    const monto = o.montoFinal ?? o.presupuesto ?? 0;
+    const vehiculo = vehiculos.find(v => v.id === o.vehiculoId);
+    const cobro: Cobro = {
+      id: crypto.randomUUID(),
+      fecha: new Date().toISOString().slice(0, 10),
+      concepto: `OT — ${vehiculo?.patente ?? ''} ${vehiculo?.marca ?? ''} ${vehiculo?.modelo ?? ''}`.trim(),
+      monto,
+      metodoPago: 'efectivo',
+      pacienteId: o.clienteId || undefined,
+      tipoComprobante: 'recibo',
+      createdAt: new Date().toISOString(),
+    };
+    onCreateCobro(cobro);
+    setOfrecerCobro(null);
+  }
+
   const estadoInfo = (e: EstadoOT) => ESTADOS.find(x => x.value === e) ?? ESTADOS[0];
 
   const inputCls = 'w-full px-3 py-2.5 rounded-xl text-sm border border-gray-200 bg-white outline-none focus:ring-2 focus:ring-cyan-300 transition-all text-gray-900 placeholder:text-gray-400';
@@ -65,6 +117,9 @@ export default function OrdenesTrabajo({ ordenes, vehiculos, clientes, onSave, o
       {node}
     </div>
   );
+
+  // Costo total repuestos en el form
+  const costoRepuestos = (form.repuestos ?? []).reduce((acc, r) => acc + r.cantidad * (r.precioUnitario ?? 0), 0);
 
   return (
     <div className="space-y-4">
@@ -117,6 +172,7 @@ export default function OrdenesTrabajo({ ordenes, vehiculos, clientes, onSave, o
             const cliente = clientes.find(c => c.id === o.clienteId);
             const est = estadoInfo(o.estado);
             const isOpen = expandido === o.id;
+            const reps = o.repuestos ?? [];
             return (
               <div key={o.id} className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
                 <button onClick={() => setExpandido(isOpen ? null : o.id)}
@@ -137,6 +193,7 @@ export default function OrdenesTrabajo({ ordenes, vehiculos, clientes, onSave, o
                       {new Date(o.fecha + 'T12:00').toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })}
                       {o.presupuesto ? ` · Ppto: $${o.presupuesto.toLocaleString('es-AR')}` : ''}
                       {o.montoFinal ? ` · Final: $${o.montoFinal.toLocaleString('es-AR')}` : ''}
+                      {reps.length > 0 ? ` · ${reps.length} repuesto${reps.length !== 1 ? 's' : ''}` : ''}
                     </p>
                   </div>
                   <ChevronDown size={16} className={`flex-shrink-0 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
@@ -149,7 +206,7 @@ export default function OrdenesTrabajo({ ordenes, vehiculos, clientes, onSave, o
                       <p className="text-xs font-bold uppercase tracking-wider mb-2 text-gray-500">Cambiar estado</p>
                       <div className="flex gap-1.5 flex-wrap">
                         {ESTADOS.map(e => (
-                          <button key={e.value} onClick={() => onSave({ ...o, estado: e.value })}
+                          <button key={e.value} onClick={() => cambiarEstado(o, e.value)}
                             className="px-2.5 py-1 rounded-lg text-xs font-bold transition-all"
                             style={o.estado === e.value
                               ? { background: e.bg, color: '#fff' }
@@ -169,6 +226,19 @@ export default function OrdenesTrabajo({ ordenes, vehiculos, clientes, onSave, o
                       <div>
                         <p className="text-xs font-bold uppercase tracking-wider mb-1 text-gray-400">Trabajo realizado</p>
                         <p className="text-sm text-gray-800">{o.trabajoRealizado}</p>
+                      </div>
+                    )}
+                    {reps.length > 0 && (
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-wider mb-1 text-gray-400">Repuestos utilizados</p>
+                        <div className="space-y-1">
+                          {reps.map((r, i) => (
+                            <div key={i} className="flex items-center justify-between text-xs text-gray-700 bg-gray-50 px-3 py-1.5 rounded-lg">
+                              <span>{r.nombre} × {r.cantidad}</span>
+                              {r.precioUnitario && <span className="text-gray-400">${(r.cantidad * r.precioUnitario).toLocaleString('es-AR')}</span>}
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                     {o.notas && (
@@ -201,7 +271,7 @@ export default function OrdenesTrabajo({ ordenes, vehiculos, clientes, onSave, o
         </div>
       )}
 
-      {/* Modal */}
+      {/* Modal crear/editar */}
       {modal && (
         <div className="fixed inset-0 z-50 flex items-end md:items-start justify-center overflow-y-auto"
           style={{ background: 'rgba(0,0,0,0.5)' }} onClick={e => { if (e.target === e.currentTarget) setModal(false); }}>
@@ -260,6 +330,58 @@ export default function OrdenesTrabajo({ ordenes, vehiculos, clientes, onSave, o
                 <textarea value={form.notas ?? ''} onChange={e => setForm(f => ({ ...f, notas: e.target.value }))}
                   placeholder="Repuestos, observaciones..." rows={2} className={inputCls} style={{ resize: 'none' }} />
               ))}
+
+              {/* ── Repuestos del stock ── */}
+              {stock.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Repuestos / Materiales</p>
+                  {/* Lista de repuestos ya agregados */}
+                  {(form.repuestos ?? []).length > 0 && (
+                    <div className="space-y-1">
+                      {(form.repuestos ?? []).map((r, i) => (
+                        <div key={i} className="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2 text-xs">
+                          <div>
+                            <span className="font-semibold text-gray-800">{r.nombre}</span>
+                            <span className="text-gray-400 ml-2">× {r.cantidad}</span>
+                            {r.precioUnitario && <span className="text-gray-400 ml-2">${(r.cantidad * r.precioUnitario).toLocaleString('es-AR')}</span>}
+                          </div>
+                          <button onClick={() => removeRepuesto(i)} className="text-red-400 hover:text-red-600 ml-2">
+                            <X size={13} />
+                          </button>
+                        </div>
+                      ))}
+                      {costoRepuestos > 0 && (
+                        <p className="text-xs text-right font-bold text-gray-600 pr-1">
+                          Costo repuestos: ${costoRepuestos.toLocaleString('es-AR')}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {/* Picker para agregar */}
+                  <div className="flex gap-2 items-end">
+                    <div className="flex-1">
+                      <select value={repStock} onChange={e => setRepStock(e.target.value)} className={inputCls}>
+                        <option value="">Seleccionar ítem...</option>
+                        {stock.map(s => (
+                          <option key={s.id} value={s.id}>
+                            {s.nombre} (stock: {s.cantidad} {s.unidad ?? 'u'})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="w-20 flex-shrink-0">
+                      <input type="number" min={1} value={repCant}
+                        onChange={e => setRepCant(parseFloat(e.target.value) || 1)}
+                        className={inputCls} placeholder="Cant." />
+                    </div>
+                    <button onClick={addRepuesto} disabled={!repStock}
+                      className="flex-shrink-0 px-3 py-2.5 rounded-xl text-xs font-bold disabled:opacity-40 transition-opacity"
+                      style={{ background: 'var(--cyan)', color: 'var(--dark)' }}>
+                      <Plus size={14} />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="flex gap-2 pt-1">
               <button onClick={() => setModal(false)}
@@ -275,6 +397,45 @@ export default function OrdenesTrabajo({ ordenes, vehiculos, clientes, onSave, o
           </div>
         </div>
       )}
+
+      {/* Oferta de cobro al entregar */}
+      {ofrecerCobro && (() => {
+        const monto = ofrecerCobro.montoFinal ?? ofrecerCobro.presupuesto ?? 0;
+        const vehiculo = vehiculos.find(v => v.id === ofrecerCobro.vehiculoId);
+        const cliente = clientes.find(c => c.id === ofrecerCobro.clienteId);
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.55)' }}>
+            <div className="w-full max-w-xs bg-white rounded-3xl p-6 space-y-4 shadow-2xl text-center">
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto"
+                style={{ background: 'var(--cyan-light)', color: 'var(--cyan-dark)' }}>
+                <DollarSign size={22} />
+              </div>
+              <div>
+                <p className="font-extrabold text-gray-900 text-base">¿Registrar cobro?</p>
+                <p className="text-sm text-gray-500 mt-1">
+                  {vehiculo ? `${vehiculo.patente} · ${vehiculo.marca} ${vehiculo.modelo}` : ''}
+                  {cliente ? ` · ${cliente.nombre} ${cliente.apellido}` : ''}
+                </p>
+                <p className="text-2xl font-extrabold mt-2" style={{ color: 'var(--dark)' }}>
+                  ${monto.toLocaleString('es-AR')}
+                </p>
+                <p className="text-xs text-gray-400 mt-1">Se va a registrar en Finanzas como cobro en efectivo</p>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => setOfrecerCobro(null)}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors">
+                  Omitir
+                </button>
+                <button onClick={() => confirmarCobro(ofrecerCobro)}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-bold hover:opacity-90 transition-opacity"
+                  style={{ background: 'var(--cyan)', color: 'var(--dark)' }}>
+                  Registrar cobro
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {confirmarBorrar && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>

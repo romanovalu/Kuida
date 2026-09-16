@@ -31,6 +31,13 @@ export interface Vehiculo {
 
 export type EstadoOT = 'recibido' | 'diagnostico' | 'en_reparacion' | 'listo' | 'entregado' | 'cancelado';
 
+export interface RepuestoOT {
+  stockItemId: string;
+  nombre: string;
+  cantidad: number;
+  precioUnitario?: number;
+}
+
 export interface OrdenTrabajo {
   id: string;
   vehiculoId: string;
@@ -45,6 +52,7 @@ export interface OrdenTrabajo {
   mecanico?: string;
   notas?: string;
   fotos?: string[];
+  repuestos?: RepuestoOT[];
   createdAt: string;
 }
 
