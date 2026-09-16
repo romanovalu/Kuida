@@ -203,9 +203,9 @@ export default function OrdenesTrabajo({ ordenes, vehiculos, clientes, onSave, o
 
       {/* Modal */}
       {modal && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-4 overflow-y-auto"
+        <div className="fixed inset-0 z-50 flex items-end md:items-start justify-center overflow-y-auto"
           style={{ background: 'rgba(0,0,0,0.5)' }} onClick={e => { if (e.target === e.currentTarget) setModal(false); }}>
-          <div className="w-full max-w-sm bg-white rounded-3xl p-6 space-y-4 shadow-2xl my-4">
+          <div className="w-full max-w-sm bg-white rounded-3xl p-6 space-y-4 shadow-2xl my-4 mx-4 md:my-8">
             <div className="flex items-center justify-between">
               <h2 className="font-extrabold text-base text-gray-900">{editing ? 'Editar OT' : 'Nueva Orden de Trabajo'}</h2>
               <button onClick={() => setModal(false)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
