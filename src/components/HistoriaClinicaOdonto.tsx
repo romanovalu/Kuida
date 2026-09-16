@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import type { Paciente, Odontograma, Consulta, HistoriaClinica, HCAnt, HCOdonto, HCDiag, SiNo, Configuracion } from '../types';
 import { uid, getLogoApp } from '../store';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -243,12 +244,21 @@ export default function HistoriaClinicaOdonto({ paciente, config, odontograma, c
     const style = document.createElement('style');
     style.id = 'hc-print-style';
     style.textContent = `
+      #hc-print-root { display: none; }
       @media print {
-        body * { visibility: hidden !important; }
-        #hc-print-root, #hc-print-root * { visibility: visible !important; }
-        html, body { height: auto !important; overflow: visible !important; }
-        #hc-print-root { display: block !important; position: absolute !important; top: 0 !important; left: 0 !important; right: 0 !important; margin: 0 !important; padding: 0 !important; }
-        .screen-only { display: none !important; }
+        body > *:not(#hc-print-root) { display: none !important; }
+        #hc-print-root {
+          display: block !important;
+          box-sizing: border-box;
+          width: 100%;
+          font-family: Arial, Helvetica, sans-serif;
+          font-size: 9pt;
+          line-height: 1.35;
+          color: #000;
+          overflow-wrap: break-word;
+          word-break: normal;
+        }
+        #hc-print-root * { box-sizing: border-box; }
         @page { size: A4; margin: 10mm 12mm; }
       }
     `;
@@ -267,8 +277,8 @@ export default function HistoriaClinicaOdonto({ paciente, config, odontograma, c
   const telConsultorio = config.recetario?.telefonoConsultorio || '';
 
   // ── Print view ────────────────────────────────────────────────────────────
-  const PrintView = () => (
-    <div id="hc-print-root" style={{ display: 'none', fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '9pt', lineHeight: '1.35', color: '#000' }}>
+  const printView = (
+    <div id="hc-print-root">
       {/* ===== PÁGINA 1 ===== */}
       <div style={{ pageBreakAfter: 'always', padding: '0' }}>
         {/* Encabezado profesional */}
@@ -784,7 +794,7 @@ export default function HistoriaClinicaOdonto({ paciente, config, odontograma, c
 
   return (
     <>
-      <PrintView />
+      {createPortal(printView, document.body)}
       <div className="screen-only fixed inset-0 z-50 flex items-center justify-center p-2" style={{ background: 'rgba(0,0,0,0.5)' }}>
         <div className="bg-white rounded-2xl shadow-2xl flex flex-col" style={{ width: '640px', maxHeight: '94vh', height: '94vh' }}>
           {/* Header */}
