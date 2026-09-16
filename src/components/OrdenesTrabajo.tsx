@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { OrdenTrabajo, Vehiculo, Paciente, EstadoOT, StockItem, Cobro, RepuestoOT } from '../types';
-import { ClipboardList, Plus, X, ChevronDown, Pencil, Trash2, DollarSign, Package } from 'lucide-react';
+import { ClipboardList, Plus, X, ChevronDown, Pencil, Trash2, DollarSign, Printer, ChevronLeft } from 'lucide-react';
 import FotosUploader from './FotosUploader';
 
 interface Props {
@@ -11,6 +11,9 @@ interface Props {
   onSave: (o: OrdenTrabajo) => void;
   onDelete: (id: string) => void;
   onCreateCobro: (c: Cobro) => void;
+  vehiculoFiltroId?: string;
+  onClearFiltroVehiculo?: () => void;
+  nombreTaller?: string;
 }
 
 const ESTADOS: { value: EstadoOT; label: string; color: string; bg: string; light: string }[] = [
@@ -30,7 +33,87 @@ const emptyForm = (): Omit<OrdenTrabajo, 'id' | 'createdAt'> => ({
   estado: 'recibido', mecanico: '', notas: '', fotos: [], repuestos: [],
 });
 
-export default function OrdenesTrabajo({ ordenes, vehiculos, clientes, stock, onSave, onDelete, onCreateCobro }: Props) {
+function printOT(o: OrdenTrabajo, vehiculo: Vehiculo | undefined, cliente: Paciente | undefined, nombreTaller: string) {
+  const reps = o.repuestos ?? [];
+  const costoReps = reps.reduce((a, r) => a + r.cantidad * (r.precioUnitario ?? 0), 0);
+  const win = window.open('', '_blank');
+  if (!win) return;
+  win.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+  <title>OT — ${vehiculo?.patente ?? o.id.slice(0, 8)}</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: Arial, sans-serif; padding: 32px; color: #111; font-size: 13px; }
+    h1 { font-size: 20px; font-weight: 900; margin-bottom: 2px; }
+    .sub { color: #555; font-size: 12px; margin-bottom: 20px; }
+    .header { display:flex; justify-content:space-between; align-items:flex-start; border-bottom: 2px solid #111; padding-bottom: 12px; margin-bottom: 16px; }
+    .ot-num { font-size: 11px; color: #666; font-weight: bold; text-transform: uppercase; letter-spacing: .05em; }
+    .section { margin-bottom: 14px; }
+    .label { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: #888; font-weight: bold; margin-bottom: 3px; }
+    .value { font-size: 13px; color: #111; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+    th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: #666; border-bottom: 1px solid #ddd; padding: 4px 6px; }
+    td { padding: 5px 6px; border-bottom: 1px solid #f0f0f0; font-size: 12px; }
+    .total-row { font-weight: bold; background: #f8f8f8; }
+    .firma { margin-top: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+    .firma-line { border-top: 1px solid #999; padding-top: 6px; font-size: 11px; color: #666; text-align: center; }
+    .badge { display:inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; background: #f0f0f0; color: #444; }
+    @media print { body { padding: 18px; } }
+  </style></head><body>
+  <div class="header">
+    <div><h1>${nombreTaller || 'Taller Mecánico'}</h1><p class="sub">Orden de Trabajo</p></div>
+    <div style="text-align:right">
+      <p class="ot-num">OT # ${o.id.slice(0, 8).toUpperCase()}</p>
+      <p style="font-size:12px;color:#555">${new Date(o.fecha + 'T12:00').toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+      <span class="badge">${o.estado.replace('_', ' ')}</span>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="section">
+      <p class="label">Vehículo</p>
+      <p class="value" style="font-weight:bold;font-size:15px">${vehiculo?.patente ?? '—'}</p>
+      <p class="value">${vehiculo ? `${vehiculo.marca} ${vehiculo.modelo}${vehiculo.anio ? ` (${vehiculo.anio})` : ''}` : '—'}</p>
+      ${vehiculo?.color ? `<p class="value" style="color:#666">${vehiculo.color}</p>` : ''}
+    </div>
+    <div class="section">
+      <p class="label">Cliente</p>
+      <p class="value">${cliente ? `${cliente.nombre} ${cliente.apellido}` : '—'}</p>
+      ${cliente?.telefono ? `<p class="value" style="color:#555">${cliente.telefono}</p>` : ''}
+      ${cliente?.email ? `<p class="value" style="color:#555">${cliente.email}</p>` : ''}
+    </div>
+  </div>
+  <div class="section">
+    <p class="label">Motivo de ingreso</p>
+    <p class="value">${o.descripcion}</p>
+  </div>
+  ${o.diagnostico ? `<div class="section"><p class="label">Diagnóstico</p><p class="value">${o.diagnostico}</p></div>` : ''}
+  ${o.trabajoRealizado ? `<div class="section"><p class="label">Trabajo realizado</p><p class="value">${o.trabajoRealizado}</p></div>` : ''}
+  ${reps.length > 0 ? `
+  <div class="section">
+    <p class="label">Repuestos y materiales</p>
+    <table>
+      <tr><th>Ítem</th><th style="text-align:right">Cant.</th><th style="text-align:right">P. Unit.</th><th style="text-align:right">Subtotal</th></tr>
+      ${reps.map(r => `<tr><td>${r.nombre}</td><td style="text-align:right">${r.cantidad}</td><td style="text-align:right">${r.precioUnitario ? '$' + r.precioUnitario.toLocaleString('es-AR') : '—'}</td><td style="text-align:right">${r.precioUnitario ? '$' + (r.cantidad * r.precioUnitario).toLocaleString('es-AR') : '—'}</td></tr>`).join('')}
+      ${costoReps > 0 ? `<tr class="total-row"><td colspan="3">Total repuestos</td><td style="text-align:right">$${costoReps.toLocaleString('es-AR')}</td></tr>` : ''}
+    </table>
+  </div>` : ''}
+  <div class="grid2" style="margin-top:8px">
+    ${o.presupuesto ? `<div class="section"><p class="label">Presupuesto</p><p class="value" style="font-size:16px;font-weight:bold">$${o.presupuesto.toLocaleString('es-AR')}</p></div>` : ''}
+    ${o.montoFinal ? `<div class="section"><p class="label">Monto final</p><p class="value" style="font-size:16px;font-weight:bold">$${o.montoFinal.toLocaleString('es-AR')}</p></div>` : ''}
+  </div>
+  ${o.mecanico ? `<div class="section"><p class="label">Mecánico</p><p class="value">${o.mecanico}</p></div>` : ''}
+  ${o.notas ? `<div class="section"><p class="label">Notas</p><p class="value" style="color:#555;font-style:italic">${o.notas}</p></div>` : ''}
+  <div class="firma">
+    <div class="firma-line">Firma del mecánico</div>
+    <div class="firma-line">Conformidad del cliente</div>
+  </div>
+  <script>window.onload=()=>{window.print();}</script>
+  </body></html>`);
+  win.document.close();
+}
+
+export default function OrdenesTrabajo({ ordenes, vehiculos, clientes, stock, onSave, onDelete, onCreateCobro, vehiculoFiltroId, onClearFiltroVehiculo, nombreTaller }: Props) {
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<OrdenTrabajo | null>(null);
   const [form, setForm] = useState(emptyForm());
@@ -43,8 +126,10 @@ export default function OrdenesTrabajo({ ordenes, vehiculos, clientes, stock, on
   const [repStock, setRepStock] = useState('');
   const [repCant, setRepCant] = useState(1);
 
-  const activas = ordenes.filter(o => o.estado !== 'entregado' && o.estado !== 'cancelado');
-  const filtradas = filtroEstado === 'todos' ? ordenes : ordenes.filter(o => o.estado === filtroEstado);
+  const vehiculoFiltro = vehiculoFiltroId ? vehiculos.find(v => v.id === vehiculoFiltroId) : undefined;
+  const ordenesPorVehiculo = vehiculoFiltroId ? ordenes.filter(o => o.vehiculoId === vehiculoFiltroId) : ordenes;
+  const activas = ordenesPorVehiculo.filter(o => o.estado !== 'entregado' && o.estado !== 'cancelado');
+  const filtradas = filtroEstado === 'todos' ? ordenesPorVehiculo : ordenesPorVehiculo.filter(o => o.estado === filtroEstado);
   const sorted = [...filtradas].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   function openNew() { setEditing(null); setForm(emptyForm()); setRepStock(''); setRepCant(1); setModal(true); }
@@ -124,10 +209,21 @@ export default function OrdenesTrabajo({ ordenes, vehiculos, clientes, stock, on
   return (
     <div className="space-y-4">
       {/* Header */}
+      {vehiculoFiltro && (
+        <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold"
+          style={{ background: 'var(--cyan-light)', color: 'var(--cyan-dark)' }}>
+          <button onClick={onClearFiltroVehiculo} className="p-1 rounded-lg hover:bg-black/10 transition-colors">
+            <ChevronLeft size={15} />
+          </button>
+          <span className="font-bold tracking-wider">{vehiculoFiltro.patente}</span>
+          <span className="text-sm">{vehiculoFiltro.marca} {vehiculoFiltro.modelo}</span>
+          <span className="ml-auto text-xs opacity-70">{ordenesPorVehiculo.length} OT{ordenesPorVehiculo.length !== 1 ? 's' : ''}</span>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-extrabold tracking-tight" style={{ color: 'var(--dark)' }}>Órdenes de Trabajo</h1>
-          <p className="text-sm text-gray-500">{activas.length} activa{activas.length !== 1 ? 's' : ''} · {ordenes.length} total</p>
+          <p className="text-sm text-gray-500">{activas.length} activa{activas.length !== 1 ? 's' : ''} · {ordenesPorVehiculo.length} total</p>
         </div>
         <button onClick={openNew}
           className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-bold hover:opacity-90 transition-opacity"
@@ -253,10 +349,14 @@ export default function OrdenesTrabajo({ ordenes, vehiculos, clientes, stock, on
                       folder={`ot/${o.id}`}
                       onChange={fotos => onSave({ ...o, fotos })}
                     />
-                    <div className="flex gap-2 pt-1">
+                    <div className="flex gap-2 pt-1 flex-wrap">
                       <button onClick={() => openEdit(o)}
                         className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
                         <Pencil size={13} /> Editar
+                      </button>
+                      <button onClick={() => printOT(o, vehiculo, cliente, nombreTaller ?? '')}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
+                        <Printer size={13} /> Imprimir
                       </button>
                       <button onClick={() => setConfirmarBorrar(o.id)}
                         className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-red-100 text-red-500 hover:bg-red-50 transition-colors">

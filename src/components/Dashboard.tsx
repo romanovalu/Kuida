@@ -30,6 +30,7 @@ interface Props {
   // Taller
   vehiculos?: Vehiculo[];
   ordenesTrabajo?: OrdenTrabajo[];
+  cobros?: import('../types').Cobro[];
 }
 
 const estadoStyle: Record<string, { bg: string; text: string; label: string }> = {
@@ -39,7 +40,7 @@ const estadoStyle: Record<string, { bg: string; text: string; label: string }> =
   cancelado:  { bg: '#F9FAFB', text: '#9CA3AF', label: 'Cancelado' },
 };
 
-export default function Dashboard({ turnos, pacientes, bloqueados, config, onNavigate, onSaveTurno, onSavePaciente, recetas = [], onSaveReceta, onDeleteReceta, reservasPendientes = [], onAceptarReserva, onRechazarReserva, vehiculos = [], ordenesTrabajo = [] }: Props) {
+export default function Dashboard({ turnos, pacientes, bloqueados, config, onNavigate, onSaveTurno, onSavePaciente, recetas = [], onSaveReceta, onDeleteReceta, reservasPendientes = [], onAceptarReserva, onRechazarReserva, vehiculos = [], ordenesTrabajo = [], cobros = [] }: Props) {
   const today = new Date().toISOString().slice(0, 10);
   const [showTurnoForm, setShowTurnoForm] = useState(false);
   const [showPacienteForm, setShowPacienteForm] = useState(false);
@@ -75,6 +76,9 @@ export default function Dashboard({ turnos, pacientes, bloqueados, config, onNav
     const otActivas    = ordenesTrabajo.filter(o => !['entregado','cancelado'].includes(o.estado));
     const otEnRep      = ordenesTrabajo.filter(o => o.estado === 'en_reparacion');
     const otListas     = ordenesTrabajo.filter(o => o.estado === 'listo');
+    const mesActual    = new Date().toISOString().slice(0, 7); // "YYYY-MM"
+    const ingresosMes  = cobros.filter(c => c.fecha.startsWith(mesActual)).reduce((a, c) => a + c.monto, 0);
+    const otsMes       = ordenesTrabajo.filter(o => o.createdAt.startsWith(mesActual)).length;
     return (
       <div className="space-y-6">
         {/* Hero taller */}
@@ -105,6 +109,8 @@ export default function Dashboard({ turnos, pacientes, bloqueados, config, onNav
           <StatCard label="En reparación" value={otEnRep.length}          sub="en proceso"     Icon={AlertCircle}   color="#F59E0B" />
           <StatCard label="Listas"        value={otListas.length}         sub="para entregar"  Icon={CheckCircle2}  color="#22C55E" />
           <StatCard label="Vehículos"     value={vehiculos.length}        sub="registrados"    Icon={Users}         color="#818CF8" />
+          <StatCard label="Ingresos mes"  value={`$${(ingresosMes/1000).toFixed(0)}k`} sub={ingresosMes > 0 ? `$${ingresosMes.toLocaleString('es-AR')}` : 'Sin cobros aún'} Icon={BarChart2} color="#34D399" strValue />
+          <StatCard label="OT este mes"   value={otsMes}                 sub="órdenes abiertas" Icon={ClipboardList} color="#A78BFA" />
         </div>
 
         {/* OT recientes */}
@@ -371,8 +377,8 @@ export default function Dashboard({ turnos, pacientes, bloqueados, config, onNav
   );
 }
 
-function StatCard({ label, value, sub, Icon, color }: {
-  label: string; value: number; sub: string; Icon: React.ElementType; color: string;
+function StatCard({ label, value, sub, Icon, color, strValue }: {
+  label: string; value: number | string; sub: string; Icon: React.ElementType; color: string; strValue?: boolean;
 }) {
   return (
     <div className="bg-white rounded-2xl px-4 py-4 shadow-sm flex items-start justify-between">

@@ -25,11 +25,11 @@ import Vehiculos from './components/Vehiculos';
 import OrdenesTrabajo from './components/OrdenesTrabajo';
 import Stock from './components/Stock';
 import type { HistoriaClinica } from './types';
-import { LayoutDashboard, CalendarDays, Users, ClipboardList, BarChart2, Settings, Wallet, LogOut, Car, Wrench, Package } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, Users, ClipboardList, BarChart2, Settings, Wallet, LogOut, Car, Wrench, Package, History } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-type Page = 'dashboard' | 'turnos' | 'pacientes' | 'historial' | 'reportes' | 'config' | 'finanzas' | 'vehiculos' | 'ordenes' | 'stock';
+type Page = 'dashboard' | 'turnos' | 'pacientes' | 'historial' | 'reportes' | 'config' | 'finanzas' | 'vehiculos' | 'ordenes' | 'stock' | 'historial_taller';
 
 const RUBROS_CLIENTE = ['peluqueria', 'estetica', 'otro'];
 
@@ -43,6 +43,7 @@ function navItems(rubro: string) {
       { id: 'pacientes' as Page, label: 'Clientes',   Icon: Users },
       { id: 'stock'     as Page, label: 'Stock',      Icon: Package },
       { id: 'finanzas'  as Page, label: 'Finanzas',   Icon: Wallet },
+      { id: 'reportes'  as Page, label: 'Reportes',   Icon: BarChart2 },
       { id: 'config'    as Page, label: 'Config',     Icon: Settings },
     ];
   }
@@ -82,6 +83,7 @@ export default function App() {
   const [vehiculos, setVehiculos] = useState<Vehiculo[]>([]);
   const [ordenesTrabajo, setOrdenesTrabajo] = useState<OrdenTrabajo[]>([]);
   const [stock, setStock] = useState<StockItem[]>([]);
+  const [vehiculoFiltroId, setVehiculoFiltroId] = useState<string | undefined>(undefined);
   const [pacienteHistorial, setPacienteHistorial] = useState<Paciente | null>(null);
   const [turnoParaConsulta, setTurnoParaConsulta] = useState<{ turnoId: string; pacienteId: string; fecha: string } | null>(null);
   const [reservasPublicas, setReservasPublicas] = useState<db.ReservaPublica[]>([]);
@@ -527,15 +529,15 @@ export default function App() {
         </header>
 
         <div className="max-w-2xl mx-auto px-4 py-6">
-          {page === 'dashboard' && <Dashboard turnos={turnos} pacientes={pacientes} bloqueados={bloqueados} config={config} onNavigate={navigate} onSaveTurno={handleSaveTurno} onSavePaciente={handleSavePaciente} recetas={recetas} onSaveReceta={handleSaveReceta} onDeleteReceta={handleDeleteReceta} reservasPendientes={reservasPublicas} onAceptarReserva={handleAceptarReserva} onRechazarReserva={handleRechazarReserva} vehiculos={vehiculos} ordenesTrabajo={ordenesTrabajo} />}
+          {page === 'dashboard' && <Dashboard turnos={turnos} pacientes={pacientes} bloqueados={bloqueados} config={config} onNavigate={navigate} onSaveTurno={handleSaveTurno} onSavePaciente={handleSavePaciente} recetas={recetas} onSaveReceta={handleSaveReceta} onDeleteReceta={handleDeleteReceta} reservasPendientes={reservasPublicas} onAceptarReserva={handleAceptarReserva} onRechazarReserva={handleRechazarReserva} vehiculos={vehiculos} ordenesTrabajo={ordenesTrabajo} cobros={cobros} />}
           {page === 'turnos'    && <Turnos turnos={turnos} pacientes={pacientes} bloqueados={bloqueados} config={config} onSaveTurno={handleSaveTurno} onUpdateTurno={handleUpdateTurno} onSaveBloqueado={handleSaveBloqueado} onDeleteBloqueado={handleDeleteBloqueado} onRegistrarConsulta={handleRegistrarConsulta} />}
-          {page === 'vehiculos' && <Vehiculos vehiculos={vehiculos} clientes={pacientes} onSave={handleSaveVehiculo} onDelete={handleDeleteVehiculo} />}
-          {page === 'ordenes'   && <OrdenesTrabajo ordenes={ordenesTrabajo} vehiculos={vehiculos} clientes={pacientes} stock={stock} onSave={handleSaveOrden} onDelete={handleDeleteOrden} onCreateCobro={handleSaveCobro} />}
+          {page === 'vehiculos' && <Vehiculos vehiculos={vehiculos} clientes={pacientes} onSave={handleSaveVehiculo} onDelete={handleDeleteVehiculo} onVerOrdenes={v => { setVehiculoFiltroId(v.id); setPage('ordenes'); }} />}
+          {page === 'ordenes'   && <OrdenesTrabajo ordenes={ordenesTrabajo} vehiculos={vehiculos} clientes={pacientes} stock={stock} onSave={handleSaveOrden} onDelete={handleDeleteOrden} onCreateCobro={handleSaveCobro} vehiculoFiltroId={vehiculoFiltroId} onClearFiltroVehiculo={() => setVehiculoFiltroId(undefined)} nombreTaller={config.nombreProfesional} />}
           {page === 'stock'     && <Stock stock={stock} onSave={handleSaveStockItem} onDelete={handleDeleteStockItem} />}
           {page === 'pacientes' && <Pacientes pacientes={pacientes} onSave={handleSavePaciente} onDelete={handleDeletePaciente} onVerHistorial={navToHistorial} config={config} {...profToolsProps} onVerHC={config.rubro === 'odontologia' ? handleOpenHC : undefined} onVerConsentimiento={config.rubro === 'odontologia' ? handleOpenCI : undefined} />}
           {page === 'historial' && <Historial consultas={consultas} pacientes={pacientes} turnos={turnos} pacienteSeleccionado={pacienteHistorial} turnoPreseleccionado={turnoParaConsulta} onSave={c => { handleSaveConsulta(c); setTurnoParaConsulta(null); }} onDelete={handleDeleteConsulta} config={config} />}
           {page === 'finanzas'  && <Finanzas cobros={cobros} gastos={gastos} pacientes={pacientes} turnos={turnos} onSaveCobro={handleSaveCobro} onDeleteCobro={handleDeleteCobro} onSaveGasto={handleSaveGasto} onDeleteGasto={handleDeleteGasto} />}
-          {page === 'reportes'  && <Reportes turnos={turnos} pacientes={pacientes} consultas={consultas} />}
+          {page === 'reportes'  && <Reportes turnos={turnos} pacientes={pacientes} consultas={consultas} ordenesTrabajo={ordenesTrabajo} cobros={cobros} vehiculos={vehiculos} config={config} />}
           {page === 'config'    && <ConfigPage config={config} onSave={handleSaveConfig} onResetSetup={async () => { const c = { ...config, setupDone: false }; await db.saveConfigToDB(c); setShowSetup(true); }} />}
         </div>
       </main>
