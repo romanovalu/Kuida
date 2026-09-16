@@ -36,12 +36,12 @@ function navItems(rubro: string) {
   const esCliente = RUBROS_CLIENTE.includes(rubro);
   if (rubro === 'taller') {
     return [
-      { id: 'dashboard' as Page, label: 'Inicio',     Icon: LayoutDashboard },
-      { id: 'ordenes'   as Page, label: 'OT',          Icon: Wrench },
-      { id: 'vehiculos' as Page, label: 'Vehículos',   Icon: Car },
-      { id: 'finanzas'  as Page, label: 'Finanzas',    Icon: Wallet },
-      { id: 'reportes'  as Page, label: 'Reportes',    Icon: BarChart2 },
-      { id: 'config'    as Page, label: 'Config',      Icon: Settings },
+      { id: 'dashboard' as Page, label: 'Inicio',    Icon: LayoutDashboard },
+      { id: 'ordenes'   as Page, label: 'OT',         Icon: Wrench },
+      { id: 'vehiculos' as Page, label: 'Vehículos',  Icon: Car },
+      { id: 'pacientes' as Page, label: 'Clientes',   Icon: Users },
+      { id: 'finanzas'  as Page, label: 'Finanzas',   Icon: Wallet },
+      { id: 'config'    as Page, label: 'Config',     Icon: Settings },
     ];
   }
   return [
