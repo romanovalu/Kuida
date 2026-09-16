@@ -246,7 +246,8 @@ export default function HistoriaClinicaOdonto({ paciente, config, odontograma, c
       @media print {
         body * { visibility: hidden !important; }
         #hc-print-root, #hc-print-root * { visibility: visible !important; }
-        #hc-print-root { display: block !important; position: fixed; top: 0; left: 0; width: 100%; }
+        html, body { height: auto !important; overflow: visible !important; }
+        #hc-print-root { display: block !important; position: absolute !important; top: 0 !important; left: 0 !important; right: 0 !important; margin: 0 !important; padding: 0 !important; }
         .screen-only { display: none !important; }
         @page { size: A4; margin: 10mm 12mm; }
       }
