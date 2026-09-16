@@ -8,7 +8,7 @@ import {
 import type {
   Paciente, Turno, Consulta, HorarioBloqueado, Configuracion,
   Cobro, Gasto, Odontograma, Medicion, NotaClinica, HistorialServicio, Receta, Rubro,
-  Vehiculo, OrdenTrabajo,
+  Vehiculo, OrdenTrabajo, StockItem,
 } from './types';
 import Dashboard from './components/Dashboard';
 import Turnos from './components/Turnos';
@@ -23,12 +23,13 @@ import HistoriaClinicaOdonto from './components/HistoriaClinicaOdonto';
 import ConsentimientoInformado, { SelectorConsentimiento, type TipoConsentimiento } from './components/ConsentimientoInformado';
 import Vehiculos from './components/Vehiculos';
 import OrdenesTrabajo from './components/OrdenesTrabajo';
+import Stock from './components/Stock';
 import type { HistoriaClinica } from './types';
-import { LayoutDashboard, CalendarDays, Users, ClipboardList, BarChart2, Settings, Wallet, LogOut, Car, Wrench } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, Users, ClipboardList, BarChart2, Settings, Wallet, LogOut, Car, Wrench, Package } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-type Page = 'dashboard' | 'turnos' | 'pacientes' | 'historial' | 'reportes' | 'config' | 'finanzas' | 'vehiculos' | 'ordenes';
+type Page = 'dashboard' | 'turnos' | 'pacientes' | 'historial' | 'reportes' | 'config' | 'finanzas' | 'vehiculos' | 'ordenes' | 'stock';
 
 const RUBROS_CLIENTE = ['peluqueria', 'estetica', 'otro'];
 
@@ -40,6 +41,7 @@ function navItems(rubro: string) {
       { id: 'ordenes'   as Page, label: 'OT',         Icon: Wrench },
       { id: 'vehiculos' as Page, label: 'Vehículos',  Icon: Car },
       { id: 'pacientes' as Page, label: 'Clientes',   Icon: Users },
+      { id: 'stock'     as Page, label: 'Stock',      Icon: Package },
       { id: 'finanzas'  as Page, label: 'Finanzas',   Icon: Wallet },
       { id: 'config'    as Page, label: 'Config',     Icon: Settings },
     ];
@@ -79,6 +81,7 @@ export default function App() {
   const [recetas, setRecetas] = useState<Receta[]>([]);
   const [vehiculos, setVehiculos] = useState<Vehiculo[]>([]);
   const [ordenesTrabajo, setOrdenesTrabajo] = useState<OrdenTrabajo[]>([]);
+  const [stock, setStock] = useState<StockItem[]>([]);
   const [pacienteHistorial, setPacienteHistorial] = useState<Paciente | null>(null);
   const [turnoParaConsulta, setTurnoParaConsulta] = useState<{ turnoId: string; pacienteId: string; fecha: string } | null>(null);
   const [reservasPublicas, setReservasPublicas] = useState<db.ReservaPublica[]>([]);
@@ -145,9 +148,10 @@ export default function App() {
         if (data.config.apariencia) applyTheme(data.config.apariencia.accentColor, data.config.apariencia.darkColor, data.config.apariencia.tema);
         setShowSetup(!data.config.setupDone);
         if (data.config.rubro === 'taller') {
-          const [vehs, ots] = await Promise.all([db.getVehiculos(), db.getOrdenesTrabajo()]);
+          const [vehs, ots, stk] = await Promise.all([db.getVehiculos(), db.getOrdenesTrabajo(), db.getStock()]);
           setVehiculos(vehs);
           setOrdenesTrabajo(ots);
+          setStock(stk);
         }
       } else {
         setShowSetup(true);
@@ -297,6 +301,16 @@ export default function App() {
   const handleDeleteGasto = useCallback((id: string) => {
     setGastos(prev => prev.filter(x => x.id !== id));
     db.deleteGasto(id).catch(console.error);
+  }, []);
+
+  const handleSaveStockItem = useCallback((s: StockItem) => {
+    setStock(prev => prev.some(x => x.id === s.id) ? prev.map(x => x.id === s.id ? s : x) : [...prev, s]);
+    db.upsertStockItem(s).catch(console.error);
+  }, []);
+
+  const handleDeleteStockItem = useCallback((id: string) => {
+    setStock(prev => prev.filter(x => x.id !== id));
+    db.deleteStockItem(id).catch(console.error);
   }, []);
 
   const handleSaveVehiculo = useCallback((v: Vehiculo) => {
@@ -490,6 +504,7 @@ export default function App() {
           {page === 'turnos'    && <Turnos turnos={turnos} pacientes={pacientes} bloqueados={bloqueados} config={config} onSaveTurno={handleSaveTurno} onUpdateTurno={handleUpdateTurno} onSaveBloqueado={handleSaveBloqueado} onDeleteBloqueado={handleDeleteBloqueado} onRegistrarConsulta={handleRegistrarConsulta} />}
           {page === 'vehiculos' && <Vehiculos vehiculos={vehiculos} clientes={pacientes} onSave={handleSaveVehiculo} onDelete={handleDeleteVehiculo} />}
           {page === 'ordenes'   && <OrdenesTrabajo ordenes={ordenesTrabajo} vehiculos={vehiculos} clientes={pacientes} onSave={handleSaveOrden} onDelete={handleDeleteOrden} />}
+          {page === 'stock'     && <Stock stock={stock} onSave={handleSaveStockItem} onDelete={handleDeleteStockItem} />}
           {page === 'pacientes' && <Pacientes pacientes={pacientes} onSave={handleSavePaciente} onDelete={handleDeletePaciente} onVerHistorial={navToHistorial} config={config} {...profToolsProps} onVerHC={config.rubro === 'odontologia' ? handleOpenHC : undefined} onVerConsentimiento={config.rubro === 'odontologia' ? handleOpenCI : undefined} />}
           {page === 'historial' && <Historial consultas={consultas} pacientes={pacientes} turnos={turnos} pacienteSeleccionado={pacienteHistorial} turnoPreseleccionado={turnoParaConsulta} onSave={c => { handleSaveConsulta(c); setTurnoParaConsulta(null); }} onDelete={handleDeleteConsulta} config={config} />}
           {page === 'finanzas'  && <Finanzas cobros={cobros} gastos={gastos} pacientes={pacientes} turnos={turnos} onSaveCobro={handleSaveCobro} onDeleteCobro={handleDeleteCobro} onSaveGasto={handleSaveGasto} onDeleteGasto={handleDeleteGasto} />}

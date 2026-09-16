@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Vehiculo, Paciente } from '../types';
-import { Car, Plus, Search, Pencil, Trash2, X, ChevronRight } from 'lucide-react';
+import { Car, Plus, Search, Pencil, Trash2, X, ChevronRight, QrCode } from 'lucide-react';
+import QRModal from './QRModal';
 
 interface Props {
   vehiculos: Vehiculo[];
@@ -26,6 +27,7 @@ export default function Vehiculos({ vehiculos, clientes, onSave, onDelete, onVer
   const [editing, setEditing] = useState<Vehiculo | null>(null);
   const [form, setForm] = useState(empty());
   const [confirmarBorrar, setConfirmarBorrar] = useState<string | null>(null);
+  const [qrVehiculo, setQrVehiculo] = useState<Vehiculo | null>(null);
 
   const filtered = vehiculos.filter(v => {
     const q = search.toLowerCase();
@@ -127,6 +129,11 @@ export default function Vehiculos({ vehiculos, clientes, onSave, onDelete, onVer
                       OT <ChevronRight size={13} />
                     </button>
                   )}
+                  <button onClick={() => setQrVehiculo(v)}
+                    className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
+                    title="Código QR">
+                    <QrCode size={15} />
+                  </button>
                   <button onClick={() => openEdit(v)}
                     className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors">
                     <Pencil size={15} />
@@ -192,6 +199,25 @@ export default function Vehiculos({ vehiculos, clientes, onSave, onDelete, onVer
           </div>
         </div>
       )}
+
+      {/* QR Modal */}
+      {qrVehiculo && (() => {
+        const c = clientes.find(x => x.id === qrVehiculo.clienteId);
+        const datos = [
+          `Patente: ${qrVehiculo.patente}`,
+          `Vehículo: ${qrVehiculo.marca} ${qrVehiculo.modelo}${qrVehiculo.anio ? ` (${qrVehiculo.anio})` : ''}`,
+          c ? `Cliente: ${c.nombre} ${c.apellido}` : '',
+          c?.telefono ? `Tel: ${c.telefono}` : '',
+        ].filter(Boolean).join('\n');
+        return (
+          <QRModal
+            titulo={qrVehiculo.patente}
+            subtitulo={`${qrVehiculo.marca} ${qrVehiculo.modelo}${c ? ` · ${c.nombre} ${c.apellido}` : ''}`}
+            datos={datos}
+            onClose={() => setQrVehiculo(null)}
+          />
+        );
+      })()}
 
       {/* Confirmar borrar */}
       {confirmarBorrar && (

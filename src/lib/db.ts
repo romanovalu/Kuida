@@ -3,7 +3,7 @@ import type {
   Paciente, Turno, Consulta, HorarioBloqueado,
   Cobro, Gasto, Receta, Odontograma, Medicion,
   NotaClinica, HistorialServicio, Configuracion, HistoriaClinica,
-  Vehiculo, OrdenTrabajo,
+  Vehiculo, OrdenTrabajo, StockItem,
 } from '../types';
 
 // ── Case conversion ───────────────────────────────────────────────────────────
@@ -214,6 +214,32 @@ export async function updateReservaEstado(id: string, estado: string, turnoId?: 
 export async function deleteReservaPublica(id: string): Promise<void> {
   const { error } = await supabase.from('reservas_publicas').delete().eq('id', id);
   if (error) throw error;
+}
+
+// ── Stock / Inventario ────────────────────────────────────────────────────────
+export async function getStock(): Promise<StockItem[]> {
+  const { data, error } = await supabase.from('stock').select('*').order('nombre', { ascending: true });
+  if (error) throw error;
+  return (data || []).map(row => camelKeys<StockItem>(row));
+}
+export const upsertStockItem = (s: StockItem) => upsertRow('stock', s as unknown as Record<string, unknown>);
+export const deleteStockItem = (id: string) => deleteRow('stock', id);
+
+// ── Fotos (Supabase Storage) ──────────────────────────────────────────────────
+export async function uploadFoto(file: File, folder: string): Promise<string> {
+  const userId = await getUserId();
+  const ext = file.name.split('.').pop();
+  const path = `${userId}/${folder}/${Date.now()}.${ext}`;
+  const { error } = await supabase.storage.from('fotos').upload(path, file, { upsert: false });
+  if (error) throw error;
+  const { data } = supabase.storage.from('fotos').getPublicUrl(path);
+  return data.publicUrl;
+}
+
+export async function deleteFoto(url: string): Promise<void> {
+  const bucket = supabase.storage.from('fotos');
+  const path = url.split('/fotos/')[1];
+  if (path) await bucket.remove([path]);
 }
 
 // ── Vehículos ─────────────────────────────────────────────────────────────────

@@ -1,5 +1,18 @@
 export type EstadoTurno = 'pendiente' | 'confirmado' | 'atendido' | 'cancelado';
 
+export interface StockItem {
+  id: string;
+  nombre: string;
+  descripcion?: string;
+  categoria?: string;
+  cantidad: number;
+  unidad?: string;
+  stockMinimo?: number;
+  precioCosto?: number;
+  precioVenta?: number;
+  createdAt: string;
+}
+
 export type Rubro =
   | 'odontologia' | 'medicina' | 'psicologia' | 'psicopedagogia'
   | 'kinesiologia' | 'nutricion' | 'peluqueria' | 'estetica' | 'taller' | 'otro';
@@ -31,6 +44,7 @@ export interface OrdenTrabajo {
   estado: EstadoOT;
   mecanico?: string;
   notas?: string;
+  fotos?: string[];
   createdAt: string;
 }
 
@@ -81,6 +95,7 @@ export interface Consulta {
   notas: string;
   profesional: string;
   proximaVisita?: string;
+  fotos?: string[];
 }
 
 export interface HorarioBloqueado {

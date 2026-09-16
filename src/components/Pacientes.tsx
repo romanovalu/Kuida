@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Plus, Search, AlertCircle, Pencil, ClipboardList, Trash2, BookUser, FileText, X, ScrollText, FilePenLine } from 'lucide-react';
+import { Plus, Search, AlertCircle, Pencil, ClipboardList, Trash2, BookUser, FileText, X, ScrollText, FilePenLine, QrCode } from 'lucide-react';
+import QRModal from './QRModal';
 import FichaProfesional from './FichaProfesional';
 import RecetasSection from './RecetaModal';
 
@@ -61,6 +62,7 @@ export default function Pacientes({ pacientes, onSave, onDelete, onVerHistorial,
   const [editPaciente, setEditPaciente] = useState<Paciente | null>(null);
   const [verDetalle, setVerDetalle] = useState<Paciente | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Paciente | null>(null);
+  const [qrPaciente, setQrPaciente] = useState<Paciente | null>(null);
   const [fichaP, setFichaP] = useState<Paciente | null>(null);
   const [recetaP, setRecetaP] = useState<Paciente | null>(null);
 
@@ -135,6 +137,7 @@ export default function Pacientes({ pacientes, onSave, onDelete, onVerHistorial,
                 {showFichaBtn && <Chip label={t.ficha} icon={<BookUser size={11} />} onClick={() => setFichaP(p)} />}
                 {showHCBtn && onVerHC && <Chip label="Historia Clínica" icon={<ScrollText size={11} />} onClick={() => onVerHC(p)} color="cyan" />}
                 {showCIBtn && onVerConsentimiento && <Chip label="Consentimiento" icon={<FilePenLine size={11} />} onClick={() => onVerConsentimiento(p)} />}
+                <Chip label="QR" icon={<QrCode size={11} />} onClick={() => setQrPaciente(p)} />
                 <Chip label="" icon={<Trash2 size={11} />} onClick={() => setConfirmDelete(p)} color="red" />
               </div>
             </div>
@@ -234,6 +237,24 @@ export default function Pacientes({ pacientes, onSave, onDelete, onVerHistorial,
           </DialogContent>
         </Dialog>
       )}
+
+      {qrPaciente && (() => {
+        const datos = [
+          `${qrPaciente.nombre} ${qrPaciente.apellido}`,
+          qrPaciente.dni ? `DNI: ${qrPaciente.dni}` : '',
+          qrPaciente.telefono ? `Tel: ${qrPaciente.telefono}` : '',
+          qrPaciente.email || '',
+          qrPaciente.obraSocial ? `OS: ${qrPaciente.obraSocial}` : '',
+        ].filter(Boolean).join('\n');
+        return (
+          <QRModal
+            titulo={`${qrPaciente.nombre} ${qrPaciente.apellido}`}
+            subtitulo={qrPaciente.telefono || undefined}
+            datos={datos}
+            onClose={() => setQrPaciente(null)}
+          />
+        );
+      })()}
     </div>
   );
 }

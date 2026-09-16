@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { OrdenTrabajo, Vehiculo, Paciente, EstadoOT } from '../types';
 import { ClipboardList, Plus, X, ChevronDown, Pencil, Trash2, DollarSign } from 'lucide-react';
+import FotosUploader from './FotosUploader';
 
 interface Props {
   ordenes: OrdenTrabajo[];
@@ -24,7 +25,7 @@ const emptyForm = (): Omit<OrdenTrabajo, 'id' | 'createdAt'> => ({
   fecha: new Date().toISOString().slice(0, 10),
   descripcion: '', diagnostico: '', trabajoRealizado: '',
   presupuesto: undefined, montoFinal: undefined,
-  estado: 'recibido', mecanico: '', notas: '',
+  estado: 'recibido', mecanico: '', notas: '', fotos: [],
 });
 
 export default function OrdenesTrabajo({ ordenes, vehiculos, clientes, onSave, onDelete }: Props) {
@@ -42,7 +43,7 @@ export default function OrdenesTrabajo({ ordenes, vehiculos, clientes, onSave, o
   function openNew() { setEditing(null); setForm(emptyForm()); setModal(true); }
   function openEdit(o: OrdenTrabajo) {
     setEditing(o);
-    setForm({ vehiculoId: o.vehiculoId, clienteId: o.clienteId, fecha: o.fecha, descripcion: o.descripcion, diagnostico: o.diagnostico, trabajoRealizado: o.trabajoRealizado, presupuesto: o.presupuesto, montoFinal: o.montoFinal, estado: o.estado, mecanico: o.mecanico, notas: o.notas });
+    setForm({ vehiculoId: o.vehiculoId, clienteId: o.clienteId, fecha: o.fecha, descripcion: o.descripcion, diagnostico: o.diagnostico, trabajoRealizado: o.trabajoRealizado, presupuesto: o.presupuesto, montoFinal: o.montoFinal, estado: o.estado, mecanico: o.mecanico, notas: o.notas, fotos: o.fotos ?? [] });
     setModal(true);
   }
   function handleVehiculoChange(vehiculoId: string) {
@@ -177,6 +178,11 @@ export default function OrdenesTrabajo({ ordenes, vehiculos, clientes, onSave, o
                       </div>
                     )}
                     {o.mecanico && <p className="text-xs text-gray-500">Mecánico: {o.mecanico}</p>}
+                    <FotosUploader
+                      fotos={o.fotos ?? []}
+                      folder={`ot/${o.id}`}
+                      onChange={fotos => onSave({ ...o, fotos })}
+                    />
                     <div className="flex gap-2 pt-1">
                       <button onClick={() => openEdit(o)}
                         className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">

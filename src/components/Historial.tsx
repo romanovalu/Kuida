@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Plus, Pencil, Trash2, CalendarClock } from 'lucide-react';
+import FotosUploader from './FotosUploader';
 
 const TODOS = '__todos__';
 
@@ -130,6 +131,13 @@ export default function Historial({ consultas, pacientes, pacienteSeleccionado, 
                       </div>
                     )}
                     <p className="text-[11px] text-gray-300 mt-2">{c.profesional}</p>
+                    <div className="mt-2">
+                      <FotosUploader
+                        fotos={c.fotos ?? []}
+                        folder={`consultas/${c.id}`}
+                        onChange={fotos => onSave({ ...c, fotos })}
+                      />
+                    </div>
                   </div>
                   <div className="flex gap-1 flex-shrink-0">
                     <button onClick={() => { setEditConsulta(c); setShowForm(true); }} className="p-2 rounded-xl text-gray-400 hover:bg-gray-50 hover:text-gray-700 transition-colors">
