@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import type { Paciente, Configuracion } from '../types';
 import { getLogoApp } from '../store';
 import { Button } from '@/components/ui/button';
@@ -471,31 +472,30 @@ function getBlocks(
 // ── PrintView ─────────────────────────────────────────────────────────────────
 
 function renderBlock(b: Block, i: number) {
-  const baseP: React.CSSProperties = { margin: '0 0 7px 0', textAlign: 'justify' as const };
+  const baseP: React.CSSProperties = { margin: '0 0 6pt 0', textAlign: 'justify', overflowWrap: 'break-word' };
   switch (b.t) {
     case 'h': return (
-      <p key={i} style={{ ...baseP, fontWeight: 'bold', marginTop: '9px' }}>{b.s}</p>
+      <p key={i} style={{ ...baseP, fontWeight: 'bold', marginTop: '8pt', marginBottom: '3pt' }}>{b.s}</p>
     );
     case 'p': return (
       <p key={i} style={baseP}>{b.s}</p>
     );
     case 'i': return (
-      <p key={i} style={{ ...baseP, fontStyle: 'italic', border: '1px solid #aaa', padding: '6px 10px', borderRadius: '3px' }}>{b.s}</p>
+      <p key={i} style={{ ...baseP, fontStyle: 'italic', border: '1px solid #999', padding: '5pt 8pt', marginTop: '6pt' }}>{b.s}</p>
     );
     case 'ul': return (
-      <ul key={i} style={{ margin: '4px 0 7px 0', paddingLeft: '0', listStyle: 'none' }}>
+      <ul key={i} style={{ margin: '3pt 0 6pt 0', paddingLeft: '14pt', listStyleType: 'none' }}>
         {b.items.map((item, j) => (
-          <li key={j} style={{ ...baseP, paddingLeft: '14px', position: 'relative' as const }}>
-            <span style={{ position: 'absolute' as const, left: 0 }}>›</span>
-            {item}
+          <li key={j} style={{ ...baseP, marginBottom: '3pt', paddingLeft: '6pt', textIndent: '-6pt' }}>
+            <span style={{ marginRight: '4pt' }}>›</span>{item}
           </li>
         ))}
       </ul>
     );
     case 'blank': return (
-      <div key={i} style={{ margin: '4px 0 6px 0' }}>
+      <div key={i} style={{ margin: '3pt 0 5pt 0', overflowWrap: 'break-word' }}>
         {b.label && <span style={{ fontWeight: 'bold' }}>{b.label} </span>}
-        <span style={{ display: 'inline-block', borderBottom: '1px solid #333', width: b.label ? '60%' : '100%', minWidth: '200px' }}>&nbsp;</span>
+        <span style={{ display: 'inline-block', borderBottom: '1px solid #555', minWidth: '120pt', width: b.label ? '55%' : '90%' }}>&nbsp;</span>
       </div>
     );
     default: return null;
@@ -532,17 +532,22 @@ export default function ConsentimientoInformado({ paciente, config, tipo, onClos
     const style = document.createElement('style');
     style.id = 'ci-print-style';
     style.textContent = `
+      #ci-print-root { display: none; }
       @media print {
-        html, body { height: auto !important; overflow: visible !important; }
-        body * { visibility: hidden !important; }
-        #ci-print-root, #ci-print-root * { visibility: visible !important; }
+        body > *:not(#ci-print-root) { display: none !important; }
         #ci-print-root {
           display: block !important;
-          position: absolute !important;
-          top: 0 !important; left: 0 !important; right: 0 !important;
-          margin: 0 !important; padding: 0 !important;
+          box-sizing: border-box;
+          width: 100%;
+          font-family: Arial, Helvetica, sans-serif;
+          font-size: 10pt;
+          line-height: 1.45;
+          color: #000;
+          overflow-wrap: break-word;
+          word-break: normal;
         }
-        @page { size: A4; margin: 12mm 14mm; }
+        #ci-print-root * { box-sizing: border-box; }
+        @page { size: A4; margin: 14mm 16mm; }
       }
     `;
     document.head.appendChild(style);
@@ -556,89 +561,99 @@ export default function ConsentimientoInformado({ paciente, config, tipo, onClos
     ? new Date(fecha + 'T12:00').toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })
     : '_____ de _________________ de _______';
 
-  const st = {
-    root: { display: 'none', fontFamily: 'Arial, Helvetica, sans-serif', fontSize: '10pt', lineHeight: '1.5', color: '#000', padding: '0 2mm' } as React.CSSProperties,
-    header: { display: 'flex', alignItems: 'center', gap: '12px', borderBottom: '2px solid #000', paddingBottom: '8px', marginBottom: '10px' } as React.CSSProperties,
-    titulo: { textAlign: 'center' as const, fontWeight: 'bold', fontSize: '12pt', textDecoration: 'underline', textTransform: 'uppercase' as const, marginBottom: '10px' },
-    datosBox: { border: '1px solid #888', padding: '6px 10px', marginBottom: '10px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3px', fontSize: '9.5pt' } as React.CSSProperties,
-    firmas: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', marginTop: '32px' } as React.CSSProperties,
-    firma: { textAlign: 'center' as const, fontSize: '9pt' },
-    pie: { marginTop: '18px', borderTop: '1px solid #ccc', paddingTop: '5px', fontSize: '7.5pt', color: '#666', textAlign: 'center' as const },
-  };
+  const printContent = (
+    <div id="ci-print-root">
+      {/* Encabezado */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10pt', borderBottom: '2pt solid #000', paddingBottom: '7pt', marginBottom: '8pt' }}>
+        {logoApp && <img src={logoApp} alt="Logo" style={{ height: '48pt', objectFit: 'contain', flexShrink: 0 }} />}
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 'bold', fontSize: '11pt' }}>{config.nombreProfesional}</div>
+          {config.especialidad && <div style={{ fontSize: '9pt' }}>{config.especialidad}</div>}
+          {domConsultorio && <div style={{ fontSize: '8.5pt', color: '#333' }}>{domConsultorio}</div>}
+          {telConsultorio && <div style={{ fontSize: '8.5pt', color: '#333' }}>Tel: {telConsultorio}</div>}
+        </div>
+        <div style={{ textAlign: 'right', fontSize: '8.5pt', border: '1pt solid #000', padding: '4pt 8pt', flexShrink: 0, whiteSpace: 'nowrap' }}>
+          <div style={{ fontSize: '7pt', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Matrícula Profesional</div>
+          <div style={{ fontWeight: 'bold', fontSize: '13pt' }}>{mp}</div>
+        </div>
+      </div>
+
+      {/* Título */}
+      <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '11pt', textDecoration: 'underline', textTransform: 'uppercase', marginBottom: '8pt' }}>{meta.titulo}</div>
+
+      {/* Lugar y fecha */}
+      <p style={{ margin: '0 0 6pt 0', fontSize: '9pt' }}>
+        <strong>Lugar y fecha:</strong> {lugar || '______________________________'} — {fechaStr}
+      </p>
+
+      {/* Datos del paciente */}
+      <table style={{ width: '100%', borderCollapse: 'collapse', border: '1pt solid #666', marginBottom: '8pt', fontSize: '9pt' }}>
+        <tbody>
+          <tr>
+            <td style={{ padding: '3pt 6pt', borderBottom: '1pt solid #ddd', borderRight: '1pt solid #ddd', width: '50%' }}><strong>Paciente:</strong> {paciente.nombre} {paciente.apellido}</td>
+            <td style={{ padding: '3pt 6pt', borderBottom: '1pt solid #ddd', width: '50%' }}><strong>DNI:</strong> {paciente.dni || '_______________'}</td>
+          </tr>
+          <tr>
+            <td style={{ padding: '3pt 6pt', borderRight: '1pt solid #ddd' }}><strong>Fecha de nac.:</strong> _______________</td>
+            <td style={{ padding: '3pt 6pt' }}><strong>Obra social / Afil.:</strong> {paciente.obraSocial || '_______________'}</td>
+          </tr>
+          {needsTutor && (
+            <tr>
+              <td style={{ padding: '3pt 6pt', borderTop: '1pt solid #ddd', borderRight: '1pt solid #ddd' }}><strong>Responsable legal:</strong> {tutor || '______________________'}</td>
+              <td style={{ padding: '3pt 6pt', borderTop: '1pt solid #ddd' }}><strong>Vínculo:</strong> {relacion}</td>
+            </tr>
+          )}
+          {needsDiente && (
+            <tr>
+              <td colSpan={2} style={{ padding: '3pt 6pt', borderTop: '1pt solid #ddd' }}><strong>Pieza dentaria N°:</strong> {diente || '____'}</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+
+      {/* Cuerpo */}
+      <div>
+        {blocks.map((b, i) => renderBlock(b, i))}
+        {notas && <p style={{ margin: '6pt 0', fontStyle: 'italic', color: '#333', overflowWrap: 'break-word' }}>{notas}</p>}
+      </div>
+
+      {/* Firmas */}
+      <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '28pt' }}>
+        <tbody>
+          <tr>
+            <td style={{ width: '45%', textAlign: 'center', fontSize: '9pt', padding: '0 8pt 0 0', verticalAlign: 'top' }}>
+              <div style={{ borderTop: '1.5pt solid #000', paddingTop: '4pt' }}>
+                Firma{needsTutor ? ' representante legal' : ' del paciente'}
+              </div>
+              <div style={{ marginTop: '18pt', borderTop: '1pt dotted #888', paddingTop: '3pt', fontSize: '8.5pt' }}>
+                Aclaración: {needsTutor ? (tutor || '______________________') : `${paciente.nombre} ${paciente.apellido}`}
+              </div>
+              <div style={{ marginTop: '2pt', fontSize: '8.5pt' }}>DNI: {needsTutor ? '_______________' : (paciente.dni || '_______________')}</div>
+            </td>
+            <td style={{ width: '10%' }} />
+            <td style={{ width: '45%', textAlign: 'center', fontSize: '9pt', padding: '0 0 0 8pt', verticalAlign: 'top' }}>
+              <div style={{ borderTop: '1.5pt solid #000', paddingTop: '4pt' }}>
+                Firma y sello del profesional
+              </div>
+              <div style={{ marginTop: '18pt', borderTop: '1pt dotted #888', paddingTop: '3pt', fontSize: '8.5pt' }}>
+                {config.nombreProfesional}
+              </div>
+              <div style={{ marginTop: '2pt', fontSize: '8.5pt' }}>M.P. {mp}</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      {/* Pie */}
+      <div style={{ marginTop: '14pt', borderTop: '1pt solid #ccc', paddingTop: '4pt', fontSize: '7pt', color: '#666', textAlign: 'center' }}>
+        Colegio de Odontólogos de Córdoba · Consentimiento informado según Ley 26.529 de Derechos del Paciente
+      </div>
+    </div>
+  );
 
   return (
     <>
-      {/* Print root */}
-      <div id="ci-print-root" style={st.root}>
-        {/* Encabezado */}
-        <div style={st.header}>
-          {logoApp && <img src={logoApp} alt="Logo" style={{ height: '52px', objectFit: 'contain', flexShrink: 0 }} />}
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 'bold', fontSize: '11pt' }}>{config.nombreProfesional}</div>
-            {config.especialidad && <div style={{ fontSize: '9.5pt' }}>{config.especialidad}</div>}
-            {domConsultorio && <div style={{ fontSize: '9pt', color: '#444' }}>{domConsultorio}</div>}
-            {telConsultorio && <div style={{ fontSize: '9pt', color: '#444' }}>Tel: {telConsultorio}</div>}
-          </div>
-          <div style={{ textAlign: 'right', fontSize: '9pt', border: '1px solid #000', padding: '4px 8px', flexShrink: 0 }}>
-            <div style={{ fontSize: '7.5pt', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Matrícula Profesional</div>
-            <div style={{ fontWeight: 'bold', fontSize: '13pt' }}>{mp}</div>
-          </div>
-        </div>
-
-        {/* Título */}
-        <div style={st.titulo}>{meta.titulo}</div>
-
-        {/* Lugar y fecha */}
-        <p style={{ margin: '0 0 8px 0', fontSize: '9.5pt' }}>
-          <strong>Lugar y fecha:</strong> {lugar || '___________________________'} — {fechaStr}
-        </p>
-
-        {/* Datos del paciente */}
-        <div style={st.datosBox}>
-          <div><strong>Paciente:</strong> {paciente.nombre} {paciente.apellido}</div>
-          <div><strong>DNI:</strong> {paciente.dni || '_______________'}</div>
-          <div><strong>Fecha de nacimiento:</strong> _______________</div>
-          <div><strong>Obra social / N° afiliado:</strong> {paciente.obraSocial || '_______________'}</div>
-          {needsTutor && <>
-            <div><strong>Responsable legal:</strong> {tutor || '___________________________'}</div>
-            <div><strong>Vínculo:</strong> {relacion}</div>
-          </>}
-          {needsDiente && <div><strong>Pieza dentaria N°:</strong> {diente || '____'}</div>}
-        </div>
-
-        {/* Cuerpo */}
-        <div style={{ marginBottom: '10px' }}>
-          {blocks.map((b, i) => renderBlock(b, i))}
-          {notas && <p style={{ margin: '8px 0', fontStyle: 'italic', color: '#333' }}>{notas}</p>}
-        </div>
-
-        {/* Firmas */}
-        <div style={st.firmas}>
-          <div style={st.firma}>
-            <div style={{ borderTop: '1.5px solid #000', paddingTop: '4px' }}>
-              Firma del paciente{needsTutor ? ' / representante legal' : ''}
-            </div>
-            <div style={{ marginTop: '20px', borderTop: '1px dotted #666', paddingTop: '4px', color: '#444' }}>
-              Aclaración: {needsTutor ? (tutor || '_______________________') : `${paciente.nombre} ${paciente.apellido}`}
-            </div>
-            <div style={{ marginTop: '4px', color: '#444' }}>DNI: {needsTutor ? '_______________' : (paciente.dni || '_______________')}</div>
-          </div>
-          <div style={st.firma}>
-            <div style={{ borderTop: '1.5px solid #000', paddingTop: '4px' }}>
-              Firma y sello del profesional
-            </div>
-            <div style={{ marginTop: '20px', borderTop: '1px dotted #666', paddingTop: '4px', color: '#444' }}>
-              {config.nombreProfesional}
-            </div>
-            <div style={{ marginTop: '4px', color: '#444' }}>M.P. {mp}</div>
-          </div>
-        </div>
-
-        {/* Pie */}
-        <div style={st.pie}>
-          Colegio de Odontólogos de Córdoba · Este documento tiene validez como instrumento de consentimiento informado según Ley 26.529 de Derechos del Paciente
-        </div>
-      </div>
+      {createPortal(printContent, document.body)}
 
       {/* Modal pantalla */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-3" style={{ background: 'rgba(0,0,0,0.55)' }}>
