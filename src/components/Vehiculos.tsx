@@ -203,11 +203,11 @@ export default function Vehiculos({ vehiculos, clientes, onSave, onDelete, onVer
       {/* QR Modal */}
       {qrVehiculo && (() => {
         const c = clientes.find(x => x.id === qrVehiculo.clienteId);
+        // Solo campos estables: el QR no cambia si se edita el cliente
         const datos = [
+          `ID: ${qrVehiculo.id}`,
           `Patente: ${qrVehiculo.patente}`,
           `Vehículo: ${qrVehiculo.marca} ${qrVehiculo.modelo}${qrVehiculo.anio ? ` (${qrVehiculo.anio})` : ''}`,
-          c ? `Cliente: ${c.nombre} ${c.apellido}` : '',
-          c?.telefono ? `Tel: ${c.telefono}` : '',
         ].filter(Boolean).join('\n');
         return (
           <QRModal

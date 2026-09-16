@@ -20,10 +20,13 @@ interface Props {
   turnoPreseleccionado?: { turnoId: string; pacienteId: string; fecha: string } | null;
   onSave: (c: Consulta) => void;
   onDelete: (id: string) => void;
-  config: { nombreProfesional: string };
+  config: { nombreProfesional: string; rubro?: string };
 }
 
+const RUBROS_CLIENTE = ['peluqueria', 'estetica', 'taller', 'otro'];
+
 export default function Historial({ consultas, pacientes, pacienteSeleccionado, turnoPreseleccionado, onSave, onDelete, config }: Props) {
+  const esCliente = RUBROS_CLIENTE.includes(config.rubro ?? '');
   const [filtroPaciente, setFiltroPaciente] = useState<string>(pacienteSeleccionado?.id || TODOS);
   const [showForm, setShowForm] = useState(!!turnoPreseleccionado);
   const [editConsulta, setEditConsulta] = useState<Consulta | null>(null);
@@ -56,13 +59,13 @@ export default function Historial({ consultas, pacientes, pacienteSeleccionado, 
 
       {/* Filtro */}
       <div>
-        <Label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 block">Filtrar por paciente</Label>
+        <Label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 block">Filtrar por {esCliente ? 'cliente' : 'paciente'}</Label>
         <Select value={filtroPaciente} onValueChange={setFiltroPaciente}>
           <SelectTrigger className="rounded-xl border-gray-200 bg-white shadow-sm">
-            <SelectValue placeholder="Todos los pacientes" />
+            <SelectValue placeholder={`Todos los ${esCliente ? 'clientes' : 'pacientes'}`} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={TODOS}>Todos los pacientes</SelectItem>
+            <SelectItem value={TODOS}>Todos los {esCliente ? 'clientes' : 'pacientes'}</SelectItem>
             {pacientes.map(p => (
               <SelectItem key={p.id} value={p.id}>{p.nombre} {p.apellido}</SelectItem>
             ))}

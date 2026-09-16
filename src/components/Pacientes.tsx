@@ -239,12 +239,11 @@ export default function Pacientes({ pacientes, onSave, onDelete, onVerHistorial,
       )}
 
       {qrPaciente && (() => {
+        // Solo campos estables: el QR no cambia si se edita el teléfono
         const datos = [
-          `${qrPaciente.nombre} ${qrPaciente.apellido}`,
+          `ID: ${qrPaciente.id}`,
+          `Nombre: ${qrPaciente.nombre} ${qrPaciente.apellido}`,
           qrPaciente.dni ? `DNI: ${qrPaciente.dni}` : '',
-          qrPaciente.telefono ? `Tel: ${qrPaciente.telefono}` : '',
-          qrPaciente.email || '',
-          qrPaciente.obraSocial ? `OS: ${qrPaciente.obraSocial}` : '',
         ].filter(Boolean).join('\n');
         return (
           <QRModal
