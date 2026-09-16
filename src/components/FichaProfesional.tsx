@@ -165,7 +165,6 @@ function OdontogramaSection({ pacienteId, odontograma, onSave }: {
 
   const pintarCara = (num: number, cara: Cara) => {
     if (['ausente', 'protesis_fija', 'protesis_removible', 'corona'].includes(pincel)) {
-      // tooth-level: toggle tipo
       setDientes(prev => {
         const d = prev[num] || { caras: {} };
         const currentTipo = d.tipo ?? (d.ausente ? 'ausente' : 'normal');
@@ -173,12 +172,17 @@ function OdontogramaSection({ pacienteId, odontograma, onSave }: {
         return { ...prev, [num]: { ...d, tipo: nextTipo, ausente: nextTipo === 'ausente', caras: nextTipo !== 'normal' ? {} : d.caras } };
       });
     } else {
-      // face-level: paint/erase color
       setDientes(prev => {
         const d = prev[num] || { caras: {} };
-        const current = d.caras[cara] || '';
-        const next: CaraColor = pincel === 'borrar' ? '' : current === pincel ? '' : pincel as CaraColor;
-        return { ...prev, [num]: { ...d, caras: { ...d.caras, [cara]: next } } };
+        const newCaras = { ...d.caras };
+        if (pincel === 'borrar') {
+          delete newCaras[cara];
+        } else {
+          const current = newCaras[cara];
+          if (current === pincel) delete newCaras[cara];
+          else newCaras[cara] = pincel as CaraColor;
+        }
+        return { ...prev, [num]: { ...d, caras: newCaras } };
       });
     }
   };
@@ -217,19 +221,14 @@ function OdontogramaSection({ pacienteId, odontograma, onSave }: {
     { mode: 'corona',           label: '○  Corona',              bg: '#F9FAFB', text: '#374151', desc: 'Corona' },
   ];
 
-  function Fila({ nums, flip = false, size = 24 }: { nums: number[]; flip?: boolean; size?: number }) {
-    return (
-      <>
-        {nums.map(num => (
-          <DienteWidget key={num} num={num} diente={getDiente(num)} tipo={getTipo(num)} pincel={pincel}
-            onPintarCara={cara => pintarCara(num, cara)}
-            onClickNumero={() => clickNumero(num)}
-            getCaraColor={cara => getCaraColor(num, cara)}
-            size={size} flip={flip} />
-        ))}
-      </>
-    );
-  }
+  const renderFila = (nums: number[], flip = false, size = 24) =>
+    nums.map(num => (
+      <DienteWidget key={num} num={num} diente={getDiente(num)} tipo={getTipo(num)} pincel={pincel}
+        onPintarCara={cara => pintarCara(num, cara)}
+        onClickNumero={() => clickNumero(num)}
+        getCaraColor={cara => getCaraColor(num, cara)}
+        size={size} flip={flip} />
+    ));
 
   return (
     <div className="space-y-3">
@@ -273,32 +272,32 @@ function OdontogramaSection({ pacienteId, odontograma, onSave }: {
           {/* Superior adulto */}
           <div className="flex items-end">
             <span className="w-10" />
-            <Fila nums={SUP_DER} />
+            {renderFila(SUP_DER)}
             <div className="w-4 self-center" style={{ borderLeft: '1.5px solid #9CA3AF', height: 36 }} />
-            <Fila nums={SUP_IZQ} />
+            {renderFila(SUP_IZQ)}
           </div>
           {/* Superior temporario */}
           <div className="flex items-end">
             <span className="w-10 text-[8px] text-gray-400 text-right pr-1 self-end pb-1">temp</span>
             <div style={{ width: 3 * 24 + 2 }} />
-            <Fila nums={TMP_SUP_DER} size={20} />
+            {renderFila(TMP_SUP_DER, false, 20)}
             <div className="w-4 self-center" style={{ borderLeft: '1.5px solid #9CA3AF', height: 28 }} />
-            <Fila nums={TMP_SUP_IZQ} size={20} />
+            {renderFila(TMP_SUP_IZQ, false, 20)}
           </div>
           {/* Inferior temporario */}
           <div className="flex items-start">
             <span className="w-10" />
             <div style={{ width: 3 * 24 + 2 }} />
-            <Fila nums={TMP_INF_DER} size={20} flip />
+            {renderFila(TMP_INF_DER, true, 20)}
             <div className="w-4 self-center" style={{ borderLeft: '1.5px solid #9CA3AF', height: 28 }} />
-            <Fila nums={TMP_INF_IZQ} size={20} flip />
+            {renderFila(TMP_INF_IZQ, true, 20)}
           </div>
           {/* Inferior adulto */}
           <div className="flex items-start">
             <span className="w-10" />
-            <Fila nums={INF_DER} flip />
+            {renderFila(INF_DER, true)}
             <div className="w-4 self-center" style={{ borderLeft: '1.5px solid #9CA3AF', height: 36 }} />
-            <Fila nums={INF_IZQ} flip />
+            {renderFila(INF_IZQ, true)}
           </div>
         </div>
       </div>
