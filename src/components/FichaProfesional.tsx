@@ -410,8 +410,6 @@ function DienteWidget({ num, diente, tipo, pincel, onPintarCara, onClickNumero, 
       {flip ? svgEl : numEl}
     </div>
   );
-    </div>
-  );
 }
 
 // ── Notas clínicas ───────────────────────────────────────────────────────────
