@@ -28,7 +28,7 @@ export default function FotosUploader({ fotos, folder, onChange, readonly = fals
       }
       if (urls.length) onChange([...fotos, ...urls]);
     } catch {
-      setError('Error al subir la foto. Verificá que el bucket "fotos" esté creado en Supabase.');
+      setError('Error al subir la foto. Verificá que el bucket "foto" esté creado en Supabase.');
     } finally {
       setUploading(false);
     }

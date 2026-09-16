@@ -235,15 +235,15 @@ export async function uploadFoto(file: File, folder: string): Promise<string> {
   const userId = await getUserId();
   const ext = file.name.split('.').pop();
   const path = `${userId}/${folder}/${Date.now()}.${ext}`;
-  const { error } = await supabase.storage.from('fotos').upload(path, file, { upsert: false });
+  const { error } = await supabase.storage.from('foto').upload(path, file, { upsert: false });
   if (error) throw error;
-  const { data } = supabase.storage.from('fotos').getPublicUrl(path);
+  const { data } = supabase.storage.from('foto').getPublicUrl(path);
   return data.publicUrl;
 }
 
 export async function deleteFoto(url: string): Promise<void> {
-  const bucket = supabase.storage.from('fotos');
-  const path = url.split('/fotos/')[1];
+  const bucket = supabase.storage.from('foto');
+  const path = url.split('/foto/')[1];
   if (path) await bucket.remove([path]);
 }
 
