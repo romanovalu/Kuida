@@ -246,19 +246,29 @@ export default function HistoriaClinicaOdonto({ paciente, config, odontograma, c
     style.textContent = `
       #hc-print-root { display: none; }
       @media print {
+        html, body {
+          width: auto !important;
+          min-width: 0 !important;
+          max-width: none !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          overflow: visible !important;
+        }
         body > *:not(#hc-print-root) { display: none !important; }
         #hc-print-root {
           display: block !important;
           box-sizing: border-box;
           width: 100%;
+          max-width: 100%;
           font-family: Arial, Helvetica, sans-serif;
           font-size: 9pt;
           line-height: 1.35;
           color: #000;
           overflow-wrap: break-word;
-          word-break: normal;
+          word-break: break-word;
         }
-        #hc-print-root * { box-sizing: border-box; }
+        #hc-print-root * { box-sizing: border-box; max-width: 100%; }
+        #hc-print-root img { max-width: 100%; height: auto; }
         @page { size: A4; margin: 10mm 12mm; }
       }
     `;
@@ -282,15 +292,15 @@ export default function HistoriaClinicaOdonto({ paciente, config, odontograma, c
       {/* ===== PÁGINA 1 ===== */}
       <div style={{ pageBreakAfter: 'always', padding: '0' }}>
         {/* Encabezado profesional */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', borderBottom: '2px solid #000', paddingBottom: '8px', marginBottom: '6px' }}>
-          {logoApp && <img src={logoApp} alt="Logo" style={{ height: '50px', objectFit: 'contain' }} />}
-          <div style={{ flex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '2px solid #000', paddingBottom: '8px', marginBottom: '6px' }}>
+          {logoApp && <img src={logoApp} alt="Logo" style={{ height: '44px', objectFit: 'contain', flexShrink: 0 }} />}
+          <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontWeight: 'bold', fontSize: '11pt' }}>{config.nombreProfesional}</div>
             <div>{config.especialidad}</div>
             {domConsultorio && <div>{domConsultorio}</div>}
             {telConsultorio && <div>Tel: {telConsultorio}</div>}
           </div>
-          <div style={{ border: '1px solid #000', padding: '4px 8px', fontSize: '8pt' }}>
+          <div style={{ border: '1px solid #000', padding: '4px 8px', fontSize: '8pt', flexShrink: 0 }}>
             <div style={{ fontWeight: 'bold' }}>Nº de Matrícula</div>
             <div style={{ textAlign: 'center', fontSize: '10pt', fontWeight: 'bold' }}>{matricula}</div>
           </div>

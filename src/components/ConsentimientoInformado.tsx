@@ -534,19 +534,29 @@ export default function ConsentimientoInformado({ paciente, config, tipo, onClos
     style.textContent = `
       #ci-print-root { display: none; }
       @media print {
+        html, body {
+          width: auto !important;
+          min-width: 0 !important;
+          max-width: none !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          overflow: visible !important;
+        }
         body > *:not(#ci-print-root) { display: none !important; }
         #ci-print-root {
           display: block !important;
           box-sizing: border-box;
           width: 100%;
+          max-width: 100%;
           font-family: Arial, Helvetica, sans-serif;
           font-size: 10pt;
           line-height: 1.45;
           color: #000;
           overflow-wrap: break-word;
-          word-break: normal;
+          word-break: break-word;
         }
-        #ci-print-root * { box-sizing: border-box; }
+        #ci-print-root * { box-sizing: border-box; max-width: 100%; }
+        #ci-print-root img { max-width: 100%; height: auto; }
         @page { size: A4; margin: 14mm 16mm; }
       }
     `;
@@ -564,15 +574,15 @@ export default function ConsentimientoInformado({ paciente, config, tipo, onClos
   const printContent = (
     <div id="ci-print-root">
       {/* Encabezado */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10pt', borderBottom: '2pt solid #000', paddingBottom: '7pt', marginBottom: '8pt' }}>
-        {logoApp && <img src={logoApp} alt="Logo" style={{ height: '48pt', objectFit: 'contain', flexShrink: 0 }} />}
-        <div style={{ flex: 1 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8pt', borderBottom: '2pt solid #000', paddingBottom: '7pt', marginBottom: '8pt' }}>
+        {logoApp && <img src={logoApp} alt="Logo" style={{ height: '44pt', objectFit: 'contain', flexShrink: 0 }} />}
+        <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 'bold', fontSize: '11pt' }}>{config.nombreProfesional}</div>
           {config.especialidad && <div style={{ fontSize: '9pt' }}>{config.especialidad}</div>}
           {domConsultorio && <div style={{ fontSize: '8.5pt', color: '#333' }}>{domConsultorio}</div>}
           {telConsultorio && <div style={{ fontSize: '8.5pt', color: '#333' }}>Tel: {telConsultorio}</div>}
         </div>
-        <div style={{ textAlign: 'right', fontSize: '8.5pt', border: '1pt solid #000', padding: '4pt 8pt', flexShrink: 0, whiteSpace: 'nowrap' }}>
+        <div style={{ textAlign: 'right', fontSize: '8.5pt', border: '1pt solid #000', padding: '4pt 8pt', flexShrink: 0 }}>
           <div style={{ fontSize: '7pt', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Matrícula Profesional</div>
           <div style={{ fontWeight: 'bold', fontSize: '13pt' }}>{mp}</div>
         </div>
