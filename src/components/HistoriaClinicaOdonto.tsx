@@ -269,7 +269,7 @@ export default function HistoriaClinicaOdonto({ paciente, config, odontograma, c
         }
         #hc-print-root * { box-sizing: border-box; max-width: 100%; }
         #hc-print-root img { max-width: 100%; height: auto; }
-        @page { size: A4; margin: 10mm 12mm; }
+        @page { size: A4; margin: 14mm 18mm; }
       }
     `;
     document.head.appendChild(style);
@@ -292,17 +292,24 @@ export default function HistoriaClinicaOdonto({ paciente, config, odontograma, c
       {/* ===== PÁGINA 1 ===== */}
       <div style={{ pageBreakAfter: 'always', padding: '0' }}>
         {/* Encabezado profesional */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '2px solid #000', paddingBottom: '8px', marginBottom: '6px' }}>
-          {logoApp && <img src={logoApp} alt="Logo" style={{ height: '44px', objectFit: 'contain', flexShrink: 0 }} />}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 'bold', fontSize: '11pt' }}>{config.nombreProfesional}</div>
-            <div>{config.especialidad}</div>
-            {domConsultorio && <div>{domConsultorio}</div>}
-            {telConsultorio && <div>Tel: {telConsultorio}</div>}
+        <div style={{ display: 'flex', alignItems: 'stretch', gap: '8px', borderBottom: '3px solid #1a1a2e', paddingBottom: '7px', marginBottom: '7px' }}>
+          {logoApp && (
+            <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+              <img src={logoApp} alt="Logo" style={{ height: '42px', width: 'auto', objectFit: 'contain' }} />
+            </div>
+          )}
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '1px' }}>
+            <div style={{ fontWeight: 800, fontSize: '11pt', letterSpacing: '-0.01em', color: '#1a1a2e' }}>{config.nombreProfesional}</div>
+            {config.especialidad && <div style={{ fontSize: '8.5pt', color: '#444', fontWeight: 600 }}>{config.especialidad}</div>}
+            {(domConsultorio || telConsultorio) && (
+              <div style={{ fontSize: '7.5pt', color: '#666' }}>
+                {domConsultorio}{domConsultorio && telConsultorio ? '  ·  ' : ''}{telConsultorio ? `Tel: ${telConsultorio}` : ''}
+              </div>
+            )}
           </div>
-          <div style={{ border: '1px solid #000', padding: '4px 8px', fontSize: '8pt', flexShrink: 0 }}>
-            <div style={{ fontWeight: 'bold' }}>Nº de Matrícula</div>
-            <div style={{ textAlign: 'center', fontSize: '10pt', fontWeight: 'bold' }}>{matricula}</div>
+          <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: '1.5px solid #1a1a2e', borderRadius: '3px', padding: '4px 9px', minWidth: '50px' }}>
+            <div style={{ fontSize: '6pt', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#555', fontWeight: 600 }}>Nº Matrícula</div>
+            <div style={{ fontWeight: 800, fontSize: '13pt', color: '#1a1a2e', lineHeight: 1.1 }}>{matricula || '______'}</div>
           </div>
         </div>
 

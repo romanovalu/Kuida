@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import type {
-  Paciente, Rubro, Odontograma, DienteEstado, TratamientoCara,
+  Paciente, Rubro, Odontograma, DienteEstado, TipoTooth, CaraColor,
   Medicion, NotaClinica, HistorialServicio, Configuracion, Receta,
 } from '../types';
 import { uid } from '../store';
@@ -127,15 +127,7 @@ export default function FichaProfesional({ paciente, config, odontogramas, medic
 
 // ── Odontograma ──────────────────────────────────────────────────────────────
 
-const TRATAMIENTOS: { value: TratamientoCara; label: string; color: string }[] = [
-  { value: '',           label: 'Sano',         color: '#FFFFFF' },
-  { value: 'caries',     label: 'Caries',        color: '#EF4444' },
-  { value: 'restauracion', label: 'Restauración', color: '#3B82F6' },
-  { value: 'corona',     label: 'Corona',        color: '#F59E0B' },
-  { value: 'endodoncia', label: 'Endodoncia',    color: '#8B5CF6' },
-  { value: 'fractura',   label: 'Fractura',      color: '#EC4899' },
-  { value: 'sellador',   label: 'Sellador',      color: '#10B981' },
-];
+type PincelMode = 'existente' | 'requerida' | 'borrar' | 'ausente' | 'protesis_fija' | 'protesis_removible' | 'corona';
 
 // Cuadrantes adultos: [der-sup, izq-sup, izq-inf, der-inf]
 const SUP_DER = [18,17,16,15,14,13,12,11];
@@ -150,140 +142,186 @@ const TMP_INF_IZQ = [71,72,73,74,75];
 
 type Cara = 'vestibular' | 'lingual' | 'mesial' | 'distal' | 'oclusal';
 
+const CARA_COLORS: Record<string, string> = {
+  existente: '#EF4444',
+  requerida: '#3B82F6',
+  '': '#FFFFFF',
+};
+
 function OdontogramaSection({ pacienteId, odontograma, onSave }: {
   pacienteId: string; odontograma?: Odontograma; onSave: (o: Odontograma) => void;
 }) {
   const [dientes, setDientes] = useState<Record<string, DienteEstado>>(odontograma?.dientes || {});
   const [notas, setNotas] = useState(odontograma?.notas || '');
-  const [pincel, setPincel] = useState<TratamientoCara>('caries');
+  const [sarro, setSarro] = useState<boolean | null>(odontograma?.sarro ?? null);
+  const [perio, setPerio] = useState<boolean | null>(odontograma?.enfermedadPeriodontal ?? null);
+  const [pincel, setPincel] = useState<PincelMode>('existente');
   const [saved, setSaved] = useState(false);
 
   const getDiente = (num: number): DienteEstado =>
-    dientes[num] || { caras: {} };
+    dientes[num] || { caras: {}, tipo: 'normal' };
+
+  const getTipo = (num: number) => getDiente(num).tipo ?? (getDiente(num).ausente ? 'ausente' : 'normal');
 
   const pintarCara = (num: number, cara: Cara) => {
-    setDientes(prev => {
-      const d = prev[num] || { caras: {} };
-      const current = d.caras[cara] || '';
-      const next = current === pincel ? '' : pincel;
-      return { ...prev, [num]: { ...d, caras: { ...d.caras, [cara]: next } } };
-    });
+    if (['ausente', 'protesis_fija', 'protesis_removible', 'corona'].includes(pincel)) {
+      // tooth-level: toggle tipo
+      setDientes(prev => {
+        const d = prev[num] || { caras: {} };
+        const currentTipo = d.tipo ?? (d.ausente ? 'ausente' : 'normal');
+        const nextTipo = currentTipo === pincel ? 'normal' : pincel as TipoTooth;
+        return { ...prev, [num]: { ...d, tipo: nextTipo, ausente: nextTipo === 'ausente', caras: nextTipo !== 'normal' ? {} : d.caras } };
+      });
+    } else {
+      // face-level: paint/erase color
+      setDientes(prev => {
+        const d = prev[num] || { caras: {} };
+        const current = d.caras[cara] || '';
+        const next: CaraColor = pincel === 'borrar' ? '' : current === pincel ? '' : pincel as CaraColor;
+        return { ...prev, [num]: { ...d, caras: { ...d.caras, [cara]: next } } };
+      });
+    }
   };
 
-  const toggleAusente = (num: number) => {
-    setDientes(prev => {
-      const d = prev[num] || { caras: {} };
-      return { ...prev, [num]: { ...d, ausente: !d.ausente, caras: {} } };
-    });
+  const clickNumero = (num: number) => {
+    if (['ausente', 'protesis_fija', 'protesis_removible', 'corona'].includes(pincel)) {
+      setDientes(prev => {
+        const d = prev[num] || { caras: {} };
+        const currentTipo = d.tipo ?? (d.ausente ? 'ausente' : 'normal');
+        const nextTipo = currentTipo === pincel ? 'normal' : pincel as TipoTooth;
+        return { ...prev, [num]: { ...d, tipo: nextTipo, ausente: nextTipo === 'ausente', caras: nextTipo !== 'normal' ? {} : d.caras } };
+      });
+    }
   };
 
   const guardar = () => {
-    onSave({ pacienteId, dientes, notas, updatedAt: new Date().toISOString() });
+    onSave({ pacienteId, dientes, notas, sarro, enfermedadPeriodontal: perio, updatedAt: new Date().toISOString() });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
 
   const getCaraColor = (num: number, cara: Cara) => {
     const d = getDiente(num);
-    if (d.ausente) return '#E5E7EB';
-    const t = d.caras[cara] || '';
-    return TRATAMIENTOS.find(x => x.value === t)?.color || '#FFFFFF';
+    const tipo = d.tipo ?? (d.ausente ? 'ausente' : 'normal');
+    if (tipo !== 'normal') return '#F3F4F6';
+    return CARA_COLORS[d.caras[cara] || ''] ?? '#FFFFFF';
   };
+
+  const PINCELES: { mode: PincelMode; label: string; bg: string; text: string; desc: string }[] = [
+    { mode: 'existente',        label: 'Prestación existente',   bg: '#EF4444', text: 'white',   desc: 'Pinta caras en ROJO' },
+    { mode: 'requerida',        label: 'Prestación requerida',   bg: '#3B82F6', text: 'white',   desc: 'Pinta caras en AZUL' },
+    { mode: 'borrar',           label: 'Borrar cara',            bg: '#F9FAFB', text: '#374151', desc: 'Borra el color de una cara' },
+    { mode: 'ausente',          label: '✕  Ausente / Extraer',   bg: '#F9FAFB', text: '#374151', desc: 'Marca el diente con X' },
+    { mode: 'protesis_fija',    label: '▭  Prótesis Fija',       bg: '#F9FAFB', text: '#374151', desc: 'Prótesis fija' },
+    { mode: 'protesis_removible', label: '▭  Prótesis Removible', bg: '#F9FAFB', text: '#374151', desc: 'Prótesis removible' },
+    { mode: 'corona',           label: '○  Corona',              bg: '#F9FAFB', text: '#374151', desc: 'Corona' },
+  ];
+
+  function Fila({ nums, flip = false, size = 24 }: { nums: number[]; flip?: boolean; size?: number }) {
+    return (
+      <>
+        {nums.map(num => (
+          <DienteWidget key={num} num={num} diente={getDiente(num)} tipo={getTipo(num)} pincel={pincel}
+            onPintarCara={cara => pintarCara(num, cara)}
+            onClickNumero={() => clickNumero(num)}
+            getCaraColor={cara => getCaraColor(num, cara)}
+            size={size} flip={flip} />
+        ))}
+      </>
+    );
+  }
 
   return (
     <div className="space-y-3">
       <SectionTitle>Odontograma</SectionTitle>
 
-      {/* Leyenda */}
-      <div className="flex flex-wrap gap-1.5">
-        {TRATAMIENTOS.map(t => (
-          <button key={t.value} onClick={() => setPincel(t.value)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px] font-bold border-2 transition-all"
-            style={{
-              background: t.color === '#FFFFFF' ? 'white' : t.color,
-              color: ['#FFFFFF', '#F59E0B', '#10B981'].includes(t.color) ? '#1F2937' : 'white',
-              borderColor: pincel === t.value ? 'var(--dark)' : 'transparent',
-              opacity: pincel === t.value ? 1 : 0.7,
-            }}>
-            {t.label}
-          </button>
-        ))}
+      {/* Referencias / Pinceles */}
+      <div className="rounded-xl border border-gray-200 p-3 space-y-2">
+        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Referencias</p>
+        <div className="flex flex-wrap gap-1.5">
+          {PINCELES.map(p => (
+            <button key={p.mode} onClick={() => setPincel(p.mode)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px] font-semibold border-2 transition-all"
+              style={{
+                background: p.bg,
+                color: p.text,
+                borderColor: pincel === p.mode ? 'var(--dark)' : '#E5E7EB',
+                fontWeight: pincel === p.mode ? 700 : 500,
+              }}>
+              {p.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-[10px] text-gray-400">
+          {pincel === 'existente' || pincel === 'requerida' || pincel === 'borrar'
+            ? 'Tocá una cara del diente para marcarla. Tocá de nuevo para desmarcar.'
+            : 'Tocá el número del diente (o cualquier cara) para aplicar el marcador. Tocá de nuevo para quitar.'}
+        </p>
       </div>
-      <p className="text-[11px] text-gray-400">Tocá una cara del diente para marcarla con el tratamiento seleccionado. Tocá el número para marcar como ausente.</p>
 
-      {/* Odontograma */}
+      {/* Cuadrícula */}
       <div className="overflow-x-auto pb-1">
-        <div className="min-w-max space-y-0.5">
-          {/* Etiquetas */}
-          <div className="flex items-center gap-1">
-            <span className="text-[9px] font-bold text-gray-400 uppercase w-12 text-right pr-1">Derecha</span>
-            <div className="flex gap-px w-[calc(8*24px+7px)]" />
-            <div className="w-3" />
-            <div className="flex gap-px w-[calc(8*24px+7px)]" />
-            <span className="text-[9px] font-bold text-gray-400 uppercase pl-1">Izquierda</span>
+        <div className="min-w-max space-y-px">
+          {/* Labels */}
+          <div className="flex items-center">
+            <span className="text-[9px] font-bold text-gray-400 uppercase w-10 text-right pr-2">Der.</span>
+            <div style={{ width: 8 * 24 + 7 }} />
+            <div className="w-4" />
+            <div style={{ width: 8 * 24 + 7 }} />
+            <span className="text-[9px] font-bold text-gray-400 uppercase pl-2">Izq.</span>
           </div>
           {/* Superior adulto */}
-          <div className="flex items-end gap-1">
-            <span className="w-12" />
-            {SUP_DER.map(num => (
-              <DienteWidget key={num} num={num} diente={getDiente(num)} pincel={pincel}
-                onPintarCara={cara => pintarCara(num, cara)} onToggleAusente={() => toggleAusente(num)}
-                getCaraColor={cara => getCaraColor(num, cara)} />
-            ))}
-            <div className="w-3 self-center border-l border-gray-300 h-8" />
-            {SUP_IZQ.map(num => (
-              <DienteWidget key={num} num={num} diente={getDiente(num)} pincel={pincel}
-                onPintarCara={cara => pintarCara(num, cara)} onToggleAusente={() => toggleAusente(num)}
-                getCaraColor={cara => getCaraColor(num, cara)} />
-            ))}
+          <div className="flex items-end">
+            <span className="w-10" />
+            <Fila nums={SUP_DER} />
+            <div className="w-4 self-center" style={{ borderLeft: '1.5px solid #9CA3AF', height: 36 }} />
+            <Fila nums={SUP_IZQ} />
           </div>
           {/* Superior temporario */}
-          <div className="flex items-end gap-1">
-            <span className="w-12 text-[8px] text-gray-400 text-right pr-1">temp.</span>
-            <div className="flex gap-px w-[calc(3*24px+2px)]" />
-            {TMP_SUP_DER.map(num => (
-              <DienteWidget key={num} num={num} diente={getDiente(num)} pincel={pincel}
-                onPintarCara={cara => pintarCara(num, cara)} onToggleAusente={() => toggleAusente(num)}
-                getCaraColor={cara => getCaraColor(num, cara)} size={20} />
-            ))}
-            <div className="w-3 self-center border-l border-gray-300 h-6" />
-            {TMP_SUP_IZQ.map(num => (
-              <DienteWidget key={num} num={num} diente={getDiente(num)} pincel={pincel}
-                onPintarCara={cara => pintarCara(num, cara)} onToggleAusente={() => toggleAusente(num)}
-                getCaraColor={cara => getCaraColor(num, cara)} size={20} />
-            ))}
+          <div className="flex items-end">
+            <span className="w-10 text-[8px] text-gray-400 text-right pr-1 self-end pb-1">temp</span>
+            <div style={{ width: 3 * 24 + 2 }} />
+            <Fila nums={TMP_SUP_DER} size={20} />
+            <div className="w-4 self-center" style={{ borderLeft: '1.5px solid #9CA3AF', height: 28 }} />
+            <Fila nums={TMP_SUP_IZQ} size={20} />
           </div>
           {/* Inferior temporario */}
-          <div className="flex items-start gap-1">
-            <span className="w-12" />
-            <div className="flex gap-px w-[calc(3*24px+2px)]" />
-            {TMP_INF_DER.map(num => (
-              <DienteWidget key={num} num={num} diente={getDiente(num)} pincel={pincel}
-                onPintarCara={cara => pintarCara(num, cara)} onToggleAusente={() => toggleAusente(num)}
-                getCaraColor={cara => getCaraColor(num, cara)} size={20} />
-            ))}
-            <div className="w-3 self-center border-l border-gray-300 h-6" />
-            {TMP_INF_IZQ.map(num => (
-              <DienteWidget key={num} num={num} diente={getDiente(num)} pincel={pincel}
-                onPintarCara={cara => pintarCara(num, cara)} onToggleAusente={() => toggleAusente(num)}
-                getCaraColor={cara => getCaraColor(num, cara)} size={20} />
-            ))}
+          <div className="flex items-start">
+            <span className="w-10" />
+            <div style={{ width: 3 * 24 + 2 }} />
+            <Fila nums={TMP_INF_DER} size={20} flip />
+            <div className="w-4 self-center" style={{ borderLeft: '1.5px solid #9CA3AF', height: 28 }} />
+            <Fila nums={TMP_INF_IZQ} size={20} flip />
           </div>
           {/* Inferior adulto */}
-          <div className="flex items-start gap-1">
-            <span className="w-12" />
-            {INF_DER.map(num => (
-              <DienteWidget key={num} num={num} diente={getDiente(num)} pincel={pincel}
-                onPintarCara={cara => pintarCara(num, cara)} onToggleAusente={() => toggleAusente(num)}
-                getCaraColor={cara => getCaraColor(num, cara)} />
-            ))}
-            <div className="w-3 self-center border-l border-gray-300 h-8" />
-            {INF_IZQ.map(num => (
-              <DienteWidget key={num} num={num} diente={getDiente(num)} pincel={pincel}
-                onPintarCara={cara => pintarCara(num, cara)} onToggleAusente={() => toggleAusente(num)}
-                getCaraColor={cara => getCaraColor(num, cara)} />
-            ))}
+          <div className="flex items-start">
+            <span className="w-10" />
+            <Fila nums={INF_DER} flip />
+            <div className="w-4 self-center" style={{ borderLeft: '1.5px solid #9CA3AF', height: 36 }} />
+            <Fila nums={INF_IZQ} flip />
           </div>
+        </div>
+      </div>
+
+      {/* Estado bucal */}
+      <div className="flex flex-wrap gap-4 text-[12px]">
+        <div className="flex items-center gap-2">
+          <span className="font-semibold text-gray-600">Presencia de sarro:</span>
+          {([true, false] as const).map(v => (
+            <label key={String(v)} className="flex items-center gap-1 cursor-pointer">
+              <input type="radio" name="sarro" checked={sarro === v} onChange={() => setSarro(v)} className="accent-red-500" />
+              {v ? 'SI' : 'NO'}
+            </label>
+          ))}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="font-semibold text-gray-600">Enfermedad Periodontal:</span>
+          {([true, false] as const).map(v => (
+            <label key={String(v)} className="flex items-center gap-1 cursor-pointer">
+              <input type="radio" name="perio" checked={perio === v} onChange={() => setPerio(v)} className="accent-red-500" />
+              {v ? 'SI' : 'NO'}
+            </label>
+          ))}
         </div>
       </div>
 
@@ -301,56 +339,77 @@ function OdontogramaSection({ pacienteId, odontograma, onSave }: {
   );
 }
 
-function DienteWidget({ num, diente, onPintarCara, onToggleAusente, getCaraColor, size = 24 }: {
-  num: number; diente: DienteEstado;
+function DienteWidget({ num, diente, tipo, pincel, onPintarCara, onClickNumero, getCaraColor, size = 24, flip = false }: {
+  num: number; diente: DienteEstado; tipo: string; pincel: PincelMode;
   onPintarCara: (c: Cara) => void;
-  onToggleAusente: () => void;
+  onClickNumero: () => void;
   getCaraColor: (c: Cara) => string;
-  size?: number;
+  size?: number; flip?: boolean;
 }) {
-  const ausente = diente.ausente;
   const SIZE = size;
   const c = SIZE / 2;
   const inner = SIZE * 0.28;
+  const isNormal = tipo === 'normal';
+  const numEl = (
+    <button onClick={onClickNumero}
+      className="text-[9px] font-bold leading-none select-none"
+      style={{ color: isNormal ? 'var(--dark)' : '#6B7280', minWidth: SIZE }}>
+      {num}
+    </button>
+  );
+
+  const svgEl = (
+    <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} style={{ cursor: 'pointer', display: 'block' }}
+      onClick={() => !isNormal && onClickNumero()}>
+      {isNormal ? (
+        <>
+          <polygon points={`0,0 ${SIZE},0 ${c+inner},${c-inner} ${c-inner},${c-inner}`}
+            fill={getCaraColor('vestibular')} stroke="#D1D5DB" strokeWidth="0.5"
+            onClick={e => { e.stopPropagation(); onPintarCara('vestibular'); }} />
+          <polygon points={`0,${SIZE} ${SIZE},${SIZE} ${c+inner},${c+inner} ${c-inner},${c+inner}`}
+            fill={getCaraColor('lingual')} stroke="#D1D5DB" strokeWidth="0.5"
+            onClick={e => { e.stopPropagation(); onPintarCara('lingual'); }} />
+          <polygon points={`0,0 0,${SIZE} ${c-inner},${c+inner} ${c-inner},${c-inner}`}
+            fill={getCaraColor('mesial')} stroke="#D1D5DB" strokeWidth="0.5"
+            onClick={e => { e.stopPropagation(); onPintarCara('mesial'); }} />
+          <polygon points={`${SIZE},0 ${SIZE},${SIZE} ${c+inner},${c+inner} ${c+inner},${c-inner}`}
+            fill={getCaraColor('distal')} stroke="#D1D5DB" strokeWidth="0.5"
+            onClick={e => { e.stopPropagation(); onPintarCara('distal'); }} />
+          <rect x={c-inner} y={c-inner} width={inner*2} height={inner*2}
+            fill={getCaraColor('oclusal')} stroke="#D1D5DB" strokeWidth="0.5"
+            onClick={e => { e.stopPropagation(); onPintarCara('oclusal'); }} />
+        </>
+      ) : tipo === 'ausente' ? (
+        <>
+          <rect x="0" y="0" width={SIZE} height={SIZE} fill="#F9FAFB" stroke="#D1D5DB" strokeWidth="0.5" />
+          <line x1="3" y1="3" x2={SIZE-3} y2={SIZE-3} stroke="#374151" strokeWidth="1.5" />
+          <line x1={SIZE-3} y1="3" x2="3" y2={SIZE-3} stroke="#374151" strokeWidth="1.5" />
+        </>
+      ) : tipo === 'corona' ? (
+        <>
+          <rect x="0" y="0" width={SIZE} height={SIZE} fill="#FEF9C3" stroke="#D1D5DB" strokeWidth="0.5" />
+          <ellipse cx={c} cy={c} rx={inner+1} ry={inner+1} fill="none" stroke="#374151" strokeWidth="1.5" />
+        </>
+      ) : tipo === 'protesis_fija' ? (
+        <>
+          <rect x="0" y="0" width={SIZE} height={SIZE} fill="#EFF6FF" stroke="#D1D5DB" strokeWidth="0.5" />
+          <rect x="3" y="3" width={SIZE-6} height={SIZE-6} fill="none" stroke="#374151" strokeWidth="1.5" />
+        </>
+      ) : tipo === 'protesis_removible' ? (
+        <>
+          <rect x="0" y="0" width={SIZE} height={SIZE} fill="#F0FDF4" stroke="#D1D5DB" strokeWidth="0.5" />
+          <rect x="3" y="3" width={SIZE-6} height={SIZE-6} fill="none" stroke="#374151" strokeWidth="1.5" strokeDasharray="2,1.5" />
+        </>
+      ) : null}
+    </svg>
+  );
 
   return (
-    <div className="flex flex-col items-center gap-0.5">
-      {/* Diente SVG */}
-      <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} style={{ cursor: 'pointer' }}>
-        {/* Vestibular (top) */}
-        <polygon points={`0,0 ${SIZE},0 ${c+inner},${c-inner} ${c-inner},${c-inner}`}
-          fill={getCaraColor('vestibular')} stroke="#D1D5DB" strokeWidth="0.5"
-          onClick={() => !ausente && onPintarCara('vestibular')} />
-        {/* Lingual (bottom) */}
-        <polygon points={`0,${SIZE} ${SIZE},${SIZE} ${c+inner},${c+inner} ${c-inner},${c+inner}`}
-          fill={getCaraColor('lingual')} stroke="#D1D5DB" strokeWidth="0.5"
-          onClick={() => !ausente && onPintarCara('lingual')} />
-        {/* Mesial (left) */}
-        <polygon points={`0,0 0,${SIZE} ${c-inner},${c+inner} ${c-inner},${c-inner}`}
-          fill={getCaraColor('mesial')} stroke="#D1D5DB" strokeWidth="0.5"
-          onClick={() => !ausente && onPintarCara('mesial')} />
-        {/* Distal (right) */}
-        <polygon points={`${SIZE},0 ${SIZE},${SIZE} ${c+inner},${c+inner} ${c+inner},${c-inner}`}
-          fill={getCaraColor('distal')} stroke="#D1D5DB" strokeWidth="0.5"
-          onClick={() => !ausente && onPintarCara('distal')} />
-        {/* Oclusal (center) */}
-        <rect x={c-inner} y={c-inner} width={inner*2} height={inner*2}
-          fill={getCaraColor('oclusal')} stroke="#D1D5DB" strokeWidth="0.5"
-          onClick={() => !ausente && onPintarCara('oclusal')} />
-        {/* Ausente overlay */}
-        {ausente && (
-          <>
-            <line x1="2" y1="2" x2={SIZE-2} y2={SIZE-2} stroke="#6B7280" strokeWidth="1.5" />
-            <line x1={SIZE-2} y1="2" x2="2" y2={SIZE-2} stroke="#6B7280" strokeWidth="1.5" />
-          </>
-        )}
-      </svg>
-      {/* Número */}
-      <button onClick={onToggleAusente}
-        className="text-[9px] font-bold leading-none"
-        style={{ color: ausente ? '#9CA3AF' : 'var(--dark)' }}>
-        {num}
-      </button>
+    <div className="flex flex-col items-center" style={{ gap: 1 }}>
+      {flip ? numEl : svgEl}
+      {flip ? svgEl : numEl}
+    </div>
+  );
     </div>
   );
 }

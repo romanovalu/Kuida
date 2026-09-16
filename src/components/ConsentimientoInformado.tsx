@@ -557,7 +557,7 @@ export default function ConsentimientoInformado({ paciente, config, tipo, onClos
         }
         #ci-print-root * { box-sizing: border-box; max-width: 100%; }
         #ci-print-root img { max-width: 100%; height: auto; }
-        @page { size: A4; margin: 14mm 16mm; }
+        @page { size: A4; margin: 18mm 20mm; }
       }
     `;
     document.head.appendChild(style);
@@ -573,23 +573,33 @@ export default function ConsentimientoInformado({ paciente, config, tipo, onClos
 
   const printContent = (
     <div id="ci-print-root">
-      {/* Encabezado */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8pt', borderBottom: '2pt solid #000', paddingBottom: '7pt', marginBottom: '8pt' }}>
-        {logoApp && <img src={logoApp} alt="Logo" style={{ height: '44pt', objectFit: 'contain', flexShrink: 0 }} />}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 'bold', fontSize: '11pt' }}>{config.nombreProfesional}</div>
-          {config.especialidad && <div style={{ fontSize: '9pt' }}>{config.especialidad}</div>}
-          {domConsultorio && <div style={{ fontSize: '8.5pt', color: '#333' }}>{domConsultorio}</div>}
-          {telConsultorio && <div style={{ fontSize: '8.5pt', color: '#333' }}>Tel: {telConsultorio}</div>}
+      {/* ── Membrete ── */}
+      <div style={{ display: 'flex', alignItems: 'stretch', gap: '10pt', marginBottom: '10pt', borderBottom: '3pt solid #1a1a2e', paddingBottom: '8pt' }}>
+        {/* Logo */}
+        {logoApp && (
+          <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+            <img src={logoApp} alt="Logo" style={{ height: '46pt', width: 'auto', objectFit: 'contain' }} />
+          </div>
+        )}
+        {/* Datos profesional */}
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '1.5pt' }}>
+          <div style={{ fontWeight: 800, fontSize: '12pt', letterSpacing: '-0.01em', color: '#1a1a2e' }}>{config.nombreProfesional}</div>
+          {config.especialidad && <div style={{ fontSize: '9pt', color: '#444', fontWeight: 600 }}>{config.especialidad}</div>}
+          {(domConsultorio || telConsultorio) && (
+            <div style={{ fontSize: '8pt', color: '#666', marginTop: '1pt' }}>
+              {domConsultorio}{domConsultorio && telConsultorio ? '  ·  ' : ''}{telConsultorio ? `Tel: ${telConsultorio}` : ''}
+            </div>
+          )}
         </div>
-        <div style={{ textAlign: 'right', fontSize: '8.5pt', border: '1pt solid #000', padding: '4pt 8pt', flexShrink: 0 }}>
-          <div style={{ fontSize: '7pt', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Matrícula Profesional</div>
-          <div style={{ fontWeight: 'bold', fontSize: '13pt' }}>{mp}</div>
+        {/* Matrícula */}
+        <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: '1.5pt solid #1a1a2e', borderRadius: '3pt', padding: '5pt 10pt', minWidth: '54pt' }}>
+          <div style={{ fontSize: '6.5pt', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#555', fontWeight: 600 }}>Matrícula Prof.</div>
+          <div style={{ fontWeight: 800, fontSize: '14pt', color: '#1a1a2e', lineHeight: 1.1 }}>{mp || '______'}</div>
         </div>
       </div>
 
       {/* Título */}
-      <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '11pt', textDecoration: 'underline', textTransform: 'uppercase', marginBottom: '8pt' }}>{meta.titulo}</div>
+      <div style={{ textAlign: 'center', fontWeight: 800, fontSize: '11pt', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: '9pt', paddingBottom: '5pt', borderBottom: '0.75pt solid #ccc' }}>{meta.titulo}</div>
 
       {/* Lugar y fecha */}
       <p style={{ margin: '0 0 6pt 0', fontSize: '9pt' }}>

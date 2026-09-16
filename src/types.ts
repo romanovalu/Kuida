@@ -138,18 +138,22 @@ export interface Gasto {
 
 // ── Herramientas profesionales ───────────────────────────────────────────────
 
-// Odontograma
-export type TratamientoCara = '' | 'caries' | 'restauracion' | 'corona' | 'fractura' | 'sellador' | 'endodoncia';
+// Odontograma (sistema oficial Colegio de Odontólogos de Córdoba)
+export type CaraColor = '' | 'existente' | 'requerida';
+export type TipoTooth = 'normal' | 'ausente' | 'protesis_fija' | 'protesis_removible' | 'corona';
+export type TratamientoCara = CaraColor; // alias de compatibilidad
 export interface DienteEstado {
+  tipo?: TipoTooth;
+  caras: Partial<Record<'oclusal' | 'vestibular' | 'lingual' | 'mesial' | 'distal', CaraColor>>;
+  // legacy fields kept for backward compat with existing Supabase data
   ausente?: boolean;
-  implante?: boolean;
-  caras: Partial<Record<'oclusal' | 'vestibular' | 'lingual' | 'mesial' | 'distal', TratamientoCara>>;
-  nota?: string;
 }
 export interface Odontograma {
   pacienteId: string;
   dientes: Record<string, DienteEstado>;
   notas: string;
+  sarro?: boolean | null;
+  enfermedadPeriodontal?: boolean | null;
   updatedAt: string;
 }
 
