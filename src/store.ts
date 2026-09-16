@@ -121,6 +121,7 @@ export const RUBROS: { value: Rubro; label: string; emoji: string }[] = [
   { value: 'nutricion',      label: 'Nutrición',                emoji: '🥗' },
   { value: 'peluqueria',     label: 'Peluquería / Barbería',    emoji: '✂️' },
   { value: 'estetica',       label: 'Estética / Mesoterapia',   emoji: '✨' },
+  { value: 'taller',        label: 'Taller Mecánico',          emoji: '🔧' },
   { value: 'otro',           label: 'Otro / Independiente',     emoji: '💼' },
 ];
 
@@ -161,6 +162,11 @@ export const SERVICIOS_PRESET: Record<Rubro, Servicio[]> = {
     s('Depilación zona pequeña', 20), s('Depilación zona grande', 40),
     s('Masajes relajantes', 60), s('Tratamiento reductivo', 60),
   ],
+  taller: [
+    s('Cambio de aceite', 30), s('Diagnóstico', 45), s('Service completo', 120),
+    s('Frenos', 60), s('Suspensión', 90), s('Electricidad / electrónica', 60),
+    s('Gomería', 30), s('Alineación / balanceo', 45),
+  ],
   otro: [s('Consulta / sesión', 30), s('Seguimiento', 20)],
 };
 
@@ -173,6 +179,7 @@ export const CAMPO_RUBRO: Record<Rubro, { label: string; tipo: 'text' | 'select'
   nutricion:      { label: 'Objetivo', tipo: 'select', opciones: ['Descenso de peso', 'Aumento de peso', 'Mantenimiento', 'Patología específica'] },
   peluqueria:     { label: 'Cabina / nota', tipo: 'text' },
   estetica:       { label: 'Zona de tratamiento', tipo: 'text' },
+  taller:         { label: 'Patente / Vehículo', tipo: 'text' },
   otro:           null,
 };
 

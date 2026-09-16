@@ -8,6 +8,7 @@ import {
 import type {
   Paciente, Turno, Consulta, HorarioBloqueado, Configuracion,
   Cobro, Gasto, Odontograma, Medicion, NotaClinica, HistorialServicio, Receta, Rubro,
+  Vehiculo, OrdenTrabajo,
 } from './types';
 import Dashboard from './components/Dashboard';
 import Turnos from './components/Turnos';
@@ -20,17 +21,29 @@ import Auth from './components/Auth';
 import { KuidaLogo, KuidaCompact, KuidaIcon } from './components/KuidaLogo';
 import HistoriaClinicaOdonto from './components/HistoriaClinicaOdonto';
 import ConsentimientoInformado, { SelectorConsentimiento, type TipoConsentimiento } from './components/ConsentimientoInformado';
+import Vehiculos from './components/Vehiculos';
+import OrdenesTrabajo from './components/OrdenesTrabajo';
 import type { HistoriaClinica } from './types';
-import { LayoutDashboard, CalendarDays, Users, ClipboardList, BarChart2, Settings, Wallet, LogOut } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, Users, ClipboardList, BarChart2, Settings, Wallet, LogOut, Car, Wrench } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-type Page = 'dashboard' | 'turnos' | 'pacientes' | 'historial' | 'reportes' | 'config' | 'finanzas';
+type Page = 'dashboard' | 'turnos' | 'pacientes' | 'historial' | 'reportes' | 'config' | 'finanzas' | 'vehiculos' | 'ordenes';
 
 const RUBROS_CLIENTE = ['peluqueria', 'estetica', 'otro'];
 
 function navItems(rubro: string) {
   const esCliente = RUBROS_CLIENTE.includes(rubro);
+  if (rubro === 'taller') {
+    return [
+      { id: 'dashboard' as Page, label: 'Inicio',     Icon: LayoutDashboard },
+      { id: 'ordenes'   as Page, label: 'OT',          Icon: Wrench },
+      { id: 'vehiculos' as Page, label: 'Vehículos',   Icon: Car },
+      { id: 'finanzas'  as Page, label: 'Finanzas',    Icon: Wallet },
+      { id: 'reportes'  as Page, label: 'Reportes',    Icon: BarChart2 },
+      { id: 'config'    as Page, label: 'Config',      Icon: Settings },
+    ];
+  }
   return [
     { id: 'dashboard' as Page, label: 'Inicio',                             Icon: LayoutDashboard },
     { id: 'turnos'    as Page, label: 'Turnos',                             Icon: CalendarDays },
@@ -64,6 +77,8 @@ export default function App() {
   const [notasClinicas, setNotasClinicas] = useState<NotaClinica[]>([]);
   const [historialServicios, setHistorialServicios] = useState<HistorialServicio[]>([]);
   const [recetas, setRecetas] = useState<Receta[]>([]);
+  const [vehiculos, setVehiculos] = useState<Vehiculo[]>([]);
+  const [ordenesTrabajo, setOrdenesTrabajo] = useState<OrdenTrabajo[]>([]);
   const [pacienteHistorial, setPacienteHistorial] = useState<Paciente | null>(null);
   const [turnoParaConsulta, setTurnoParaConsulta] = useState<{ turnoId: string; pacienteId: string; fecha: string } | null>(null);
   const [reservasPublicas, setReservasPublicas] = useState<db.ReservaPublica[]>([]);
@@ -129,6 +144,11 @@ export default function App() {
         setConfig(data.config);
         if (data.config.apariencia) applyTheme(data.config.apariencia.accentColor, data.config.apariencia.darkColor, data.config.apariencia.tema);
         setShowSetup(!data.config.setupDone);
+        if (data.config.rubro === 'taller') {
+          const [vehs, ots] = await Promise.all([db.getVehiculos(), db.getOrdenesTrabajo()]);
+          setVehiculos(vehs);
+          setOrdenesTrabajo(ots);
+        }
       } else {
         setShowSetup(true);
       }
@@ -277,6 +297,26 @@ export default function App() {
   const handleDeleteGasto = useCallback((id: string) => {
     setGastos(prev => prev.filter(x => x.id !== id));
     db.deleteGasto(id).catch(console.error);
+  }, []);
+
+  const handleSaveVehiculo = useCallback((v: Vehiculo) => {
+    setVehiculos(prev => prev.some(x => x.id === v.id) ? prev.map(x => x.id === v.id ? v : x) : [...prev, v]);
+    db.upsertVehiculo(v).catch(console.error);
+  }, []);
+
+  const handleDeleteVehiculo = useCallback((id: string) => {
+    setVehiculos(prev => prev.filter(x => x.id !== id));
+    db.deleteVehiculo(id).catch(console.error);
+  }, []);
+
+  const handleSaveOrden = useCallback((o: OrdenTrabajo) => {
+    setOrdenesTrabajo(prev => prev.some(x => x.id === o.id) ? prev.map(x => x.id === o.id ? o : x) : [...prev, o]);
+    db.upsertOrdenTrabajo(o).catch(console.error);
+  }, []);
+
+  const handleDeleteOrden = useCallback((id: string) => {
+    setOrdenesTrabajo(prev => prev.filter(x => x.id !== id));
+    db.deleteOrdenTrabajo(id).catch(console.error);
   }, []);
 
   const handleSaveOdontograma = useCallback((o: Odontograma) => {
@@ -448,6 +488,8 @@ export default function App() {
         <div className="max-w-2xl mx-auto px-4 py-6">
           {page === 'dashboard' && <Dashboard turnos={turnos} pacientes={pacientes} bloqueados={bloqueados} config={config} onNavigate={navigate} onSaveTurno={handleSaveTurno} onSavePaciente={handleSavePaciente} recetas={recetas} onSaveReceta={handleSaveReceta} onDeleteReceta={handleDeleteReceta} reservasPendientes={reservasPublicas} onAceptarReserva={handleAceptarReserva} onRechazarReserva={handleRechazarReserva} />}
           {page === 'turnos'    && <Turnos turnos={turnos} pacientes={pacientes} bloqueados={bloqueados} config={config} onSaveTurno={handleSaveTurno} onUpdateTurno={handleUpdateTurno} onSaveBloqueado={handleSaveBloqueado} onDeleteBloqueado={handleDeleteBloqueado} onRegistrarConsulta={handleRegistrarConsulta} />}
+          {page === 'vehiculos' && <Vehiculos vehiculos={vehiculos} clientes={pacientes} onSave={handleSaveVehiculo} onDelete={handleDeleteVehiculo} />}
+          {page === 'ordenes'   && <OrdenesTrabajo ordenes={ordenesTrabajo} vehiculos={vehiculos} clientes={pacientes} onSave={handleSaveOrden} onDelete={handleDeleteOrden} />}
           {page === 'pacientes' && <Pacientes pacientes={pacientes} onSave={handleSavePaciente} onDelete={handleDeletePaciente} onVerHistorial={navToHistorial} config={config} {...profToolsProps} onVerHC={config.rubro === 'odontologia' ? handleOpenHC : undefined} onVerConsentimiento={config.rubro === 'odontologia' ? handleOpenCI : undefined} />}
           {page === 'historial' && <Historial consultas={consultas} pacientes={pacientes} turnos={turnos} pacienteSeleccionado={pacienteHistorial} turnoPreseleccionado={turnoParaConsulta} onSave={c => { handleSaveConsulta(c); setTurnoParaConsulta(null); }} onDelete={handleDeleteConsulta} config={config} />}
           {page === 'finanzas'  && <Finanzas cobros={cobros} gastos={gastos} pacientes={pacientes} turnos={turnos} onSaveCobro={handleSaveCobro} onDeleteCobro={handleDeleteCobro} onSaveGasto={handleSaveGasto} onDeleteGasto={handleDeleteGasto} />}

@@ -3,6 +3,7 @@ import type {
   Paciente, Turno, Consulta, HorarioBloqueado,
   Cobro, Gasto, Receta, Odontograma, Medicion,
   NotaClinica, HistorialServicio, Configuracion, HistoriaClinica,
+  Vehiculo, OrdenTrabajo,
 } from '../types';
 
 // ── Case conversion ───────────────────────────────────────────────────────────
@@ -214,6 +215,24 @@ export async function deleteReservaPublica(id: string): Promise<void> {
   const { error } = await supabase.from('reservas_publicas').delete().eq('id', id);
   if (error) throw error;
 }
+
+// ── Vehículos ─────────────────────────────────────────────────────────────────
+export async function getVehiculos(): Promise<Vehiculo[]> {
+  const { data, error } = await supabase.from('vehiculos').select('*').order('created_at', { ascending: true });
+  if (error) throw error;
+  return (data || []).map(row => camelKeys<Vehiculo>(row));
+}
+export const upsertVehiculo = (v: Vehiculo) => upsertRow('vehiculos', v as unknown as Record<string, unknown>);
+export const deleteVehiculo = (id: string) => deleteRow('vehiculos', id);
+
+// ── Órdenes de Trabajo ────────────────────────────────────────────────────────
+export async function getOrdenesTrabajo(): Promise<OrdenTrabajo[]> {
+  const { data, error } = await supabase.from('ordenes_trabajo').select('*').order('created_at', { ascending: true });
+  if (error) throw error;
+  return (data || []).map(row => camelKeys<OrdenTrabajo>(row));
+}
+export const upsertOrdenTrabajo = (o: OrdenTrabajo) => upsertRow('ordenes_trabajo', o as unknown as Record<string, unknown>);
+export const deleteOrdenTrabajo = (id: string) => deleteRow('ordenes_trabajo', id);
 
 // ── Historia Clínica Odontológica ─────────────────────────────────────────────
 

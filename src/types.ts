@@ -2,7 +2,37 @@ export type EstadoTurno = 'pendiente' | 'confirmado' | 'atendido' | 'cancelado';
 
 export type Rubro =
   | 'odontologia' | 'medicina' | 'psicologia' | 'psicopedagogia'
-  | 'kinesiologia' | 'nutricion' | 'peluqueria' | 'estetica' | 'otro';
+  | 'kinesiologia' | 'nutricion' | 'peluqueria' | 'estetica' | 'taller' | 'otro';
+
+export interface Vehiculo {
+  id: string;
+  clienteId: string;
+  patente: string;
+  marca: string;
+  modelo: string;
+  anio?: number;
+  color?: string;
+  notas?: string;
+  createdAt: string;
+}
+
+export type EstadoOT = 'recibido' | 'diagnostico' | 'en_reparacion' | 'listo' | 'entregado' | 'cancelado';
+
+export interface OrdenTrabajo {
+  id: string;
+  vehiculoId: string;
+  clienteId: string;
+  fecha: string;
+  descripcion: string;
+  diagnostico?: string;
+  trabajoRealizado?: string;
+  presupuesto?: number;
+  montoFinal?: number;
+  estado: EstadoOT;
+  mecanico?: string;
+  notas?: string;
+  createdAt: string;
+}
 
 export interface Servicio {
   id: string;
