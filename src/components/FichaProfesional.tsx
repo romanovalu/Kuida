@@ -204,12 +204,6 @@ function OdontogramaSection({ pacienteId, odontograma, onSave }: {
     setTimeout(() => setSaved(false), 2000);
   };
 
-  const getCaraColor = (num: number, cara: Cara) => {
-    const d = getDiente(num);
-    const tipo = d.tipo ?? (d.ausente ? 'ausente' : 'normal');
-    if (tipo !== 'normal') return '#F3F4F6';
-    return CARA_COLORS[d.caras[cara] || ''] ?? '#FFFFFF';
-  };
 
   const PINCELES: { mode: PincelMode; label: string; bg: string; text: string; desc: string }[] = [
     { mode: 'existente',        label: 'Prestación existente',   bg: '#EF4444', text: 'white',   desc: 'Pinta caras en ROJO' },
@@ -226,7 +220,6 @@ function OdontogramaSection({ pacienteId, odontograma, onSave }: {
       <DienteWidget key={num} num={num} diente={getDiente(num)} tipo={getTipo(num)} pincel={pincel}
         onPintarCara={cara => pintarCara(num, cara)}
         onClickNumero={() => clickNumero(num)}
-        getCaraColor={cara => getCaraColor(num, cara)}
         size={size} flip={flip} />
     ));
 
@@ -338,17 +331,20 @@ function OdontogramaSection({ pacienteId, odontograma, onSave }: {
   );
 }
 
-function DienteWidget({ num, diente, tipo, pincel, onPintarCara, onClickNumero, getCaraColor, size = 24, flip = false }: {
+function DienteWidget({ num, diente, tipo, pincel, onPintarCara, onClickNumero, size = 24, flip = false }: {
   num: number; diente: DienteEstado; tipo: string; pincel: PincelMode;
   onPintarCara: (c: Cara) => void;
   onClickNumero: () => void;
-  getCaraColor: (c: Cara) => string;
   size?: number; flip?: boolean;
 }) {
   const SIZE = size;
   const c = SIZE / 2;
   const inner = SIZE * 0.28;
   const isNormal = tipo === 'normal';
+  const caraColor = (cara: Cara): string => {
+    if (!isNormal) return '#F3F4F6';
+    return CARA_COLORS[diente.caras[cara] ?? ''] ?? '#FFFFFF';
+  };
   const numEl = (
     <button onClick={onClickNumero}
       className="text-[9px] font-bold leading-none select-none"
@@ -363,19 +359,19 @@ function DienteWidget({ num, diente, tipo, pincel, onPintarCara, onClickNumero, 
       {isNormal ? (
         <>
           <polygon points={`0,0 ${SIZE},0 ${c+inner},${c-inner} ${c-inner},${c-inner}`}
-            fill={getCaraColor('vestibular')} stroke="#D1D5DB" strokeWidth="0.5"
+            fill={caraColor('vestibular')} stroke="#D1D5DB" strokeWidth="0.5"
             onClick={e => { e.stopPropagation(); onPintarCara('vestibular'); }} />
           <polygon points={`0,${SIZE} ${SIZE},${SIZE} ${c+inner},${c+inner} ${c-inner},${c+inner}`}
-            fill={getCaraColor('lingual')} stroke="#D1D5DB" strokeWidth="0.5"
+            fill={caraColor('lingual')} stroke="#D1D5DB" strokeWidth="0.5"
             onClick={e => { e.stopPropagation(); onPintarCara('lingual'); }} />
           <polygon points={`0,0 0,${SIZE} ${c-inner},${c+inner} ${c-inner},${c-inner}`}
-            fill={getCaraColor('mesial')} stroke="#D1D5DB" strokeWidth="0.5"
+            fill={caraColor('mesial')} stroke="#D1D5DB" strokeWidth="0.5"
             onClick={e => { e.stopPropagation(); onPintarCara('mesial'); }} />
           <polygon points={`${SIZE},0 ${SIZE},${SIZE} ${c+inner},${c+inner} ${c+inner},${c-inner}`}
-            fill={getCaraColor('distal')} stroke="#D1D5DB" strokeWidth="0.5"
+            fill={caraColor('distal')} stroke="#D1D5DB" strokeWidth="0.5"
             onClick={e => { e.stopPropagation(); onPintarCara('distal'); }} />
           <rect x={c-inner} y={c-inner} width={inner*2} height={inner*2}
-            fill={getCaraColor('oclusal')} stroke="#D1D5DB" strokeWidth="0.5"
+            fill={caraColor('oclusal')} stroke="#D1D5DB" strokeWidth="0.5"
             onClick={e => { e.stopPropagation(); onPintarCara('oclusal'); }} />
         </>
       ) : tipo === 'ausente' ? (
