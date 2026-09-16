@@ -41,7 +41,12 @@ async function getAll<T>(table: string): Promise<T[]> {
 
 async function upsertRow(table: string, obj: Record<string, unknown>): Promise<void> {
   const userId = await getUserId();
-  const row = { ...snakeKeys(obj), user_id: userId };
+  const snake = snakeKeys(obj);
+  // Convertir strings vacíos en campos _id a null (evita error FK en Postgres)
+  const row: Record<string, unknown> = { user_id: userId };
+  for (const [k, v] of Object.entries(snake)) {
+    row[k] = (k.endsWith('_id') && v === '') ? null : v;
+  }
   const { error } = await supabase.from(table).upsert(row, { onConflict: 'id' });
   if (error) throw error;
 }
