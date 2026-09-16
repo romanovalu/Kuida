@@ -137,8 +137,16 @@ const TRATAMIENTOS: { value: TratamientoCara; label: string; color: string }[] =
   { value: 'sellador',   label: 'Sellador',      color: '#10B981' },
 ];
 
-const DIENTES_SUPERIORES = [18,17,16,15,14,13,12,11, 21,22,23,24,25,26,27,28];
-const DIENTES_INFERIORES = [48,47,46,45,44,43,42,41, 31,32,33,34,35,36,37,38];
+// Cuadrantes adultos: [der-sup, izq-sup, izq-inf, der-inf]
+const SUP_DER = [18,17,16,15,14,13,12,11];
+const SUP_IZQ = [21,22,23,24,25,26,27,28];
+const INF_DER = [48,47,46,45,44,43,42,41];
+const INF_IZQ = [31,32,33,34,35,36,37,38];
+// Temporarios
+const TMP_SUP_DER = [55,54,53,52,51];
+const TMP_SUP_IZQ = [61,62,63,64,65];
+const TMP_INF_DER = [85,84,83,82,81];
+const TMP_INF_IZQ = [71,72,73,74,75];
 
 type Cara = 'vestibular' | 'lingual' | 'mesial' | 'distal' | 'oclusal';
 
@@ -203,21 +211,79 @@ function OdontogramaSection({ pacienteId, odontograma, onSave }: {
       </div>
       <p className="text-[11px] text-gray-400">Tocá una cara del diente para marcarla con el tratamiento seleccionado. Tocá el número para marcar como ausente.</p>
 
-      {/* Cuadrante superior */}
+      {/* Odontograma */}
       <div className="overflow-x-auto pb-1">
-        <div className="flex gap-1 min-w-max">
-          {DIENTES_SUPERIORES.map(num => (
-            <DienteWidget key={num} num={num} diente={getDiente(num)} pincel={pincel}
-              onPintarCara={cara => pintarCara(num, cara)} onToggleAusente={() => toggleAusente(num)}
-              getCaraColor={cara => getCaraColor(num, cara)} />
-          ))}
-        </div>
-        <div className="flex gap-1 min-w-max mt-1">
-          {DIENTES_INFERIORES.map(num => (
-            <DienteWidget key={num} num={num} diente={getDiente(num)} pincel={pincel}
-              onPintarCara={cara => pintarCara(num, cara)} onToggleAusente={() => toggleAusente(num)}
-              getCaraColor={cara => getCaraColor(num, cara)} />
-          ))}
+        <div className="min-w-max space-y-0.5">
+          {/* Etiquetas */}
+          <div className="flex items-center gap-1">
+            <span className="text-[9px] font-bold text-gray-400 uppercase w-12 text-right pr-1">Derecha</span>
+            <div className="flex gap-px w-[calc(8*24px+7px)]" />
+            <div className="w-3" />
+            <div className="flex gap-px w-[calc(8*24px+7px)]" />
+            <span className="text-[9px] font-bold text-gray-400 uppercase pl-1">Izquierda</span>
+          </div>
+          {/* Superior adulto */}
+          <div className="flex items-end gap-1">
+            <span className="w-12" />
+            {SUP_DER.map(num => (
+              <DienteWidget key={num} num={num} diente={getDiente(num)} pincel={pincel}
+                onPintarCara={cara => pintarCara(num, cara)} onToggleAusente={() => toggleAusente(num)}
+                getCaraColor={cara => getCaraColor(num, cara)} />
+            ))}
+            <div className="w-3 self-center border-l border-gray-300 h-8" />
+            {SUP_IZQ.map(num => (
+              <DienteWidget key={num} num={num} diente={getDiente(num)} pincel={pincel}
+                onPintarCara={cara => pintarCara(num, cara)} onToggleAusente={() => toggleAusente(num)}
+                getCaraColor={cara => getCaraColor(num, cara)} />
+            ))}
+          </div>
+          {/* Superior temporario */}
+          <div className="flex items-end gap-1">
+            <span className="w-12 text-[8px] text-gray-400 text-right pr-1">temp.</span>
+            <div className="flex gap-px w-[calc(3*24px+2px)]" />
+            {TMP_SUP_DER.map(num => (
+              <DienteWidget key={num} num={num} diente={getDiente(num)} pincel={pincel}
+                onPintarCara={cara => pintarCara(num, cara)} onToggleAusente={() => toggleAusente(num)}
+                getCaraColor={cara => getCaraColor(num, cara)} size={20} />
+            ))}
+            <div className="w-3 self-center border-l border-gray-300 h-6" />
+            {TMP_SUP_IZQ.map(num => (
+              <DienteWidget key={num} num={num} diente={getDiente(num)} pincel={pincel}
+                onPintarCara={cara => pintarCara(num, cara)} onToggleAusente={() => toggleAusente(num)}
+                getCaraColor={cara => getCaraColor(num, cara)} size={20} />
+            ))}
+          </div>
+          {/* Inferior temporario */}
+          <div className="flex items-start gap-1">
+            <span className="w-12" />
+            <div className="flex gap-px w-[calc(3*24px+2px)]" />
+            {TMP_INF_DER.map(num => (
+              <DienteWidget key={num} num={num} diente={getDiente(num)} pincel={pincel}
+                onPintarCara={cara => pintarCara(num, cara)} onToggleAusente={() => toggleAusente(num)}
+                getCaraColor={cara => getCaraColor(num, cara)} size={20} />
+            ))}
+            <div className="w-3 self-center border-l border-gray-300 h-6" />
+            {TMP_INF_IZQ.map(num => (
+              <DienteWidget key={num} num={num} diente={getDiente(num)} pincel={pincel}
+                onPintarCara={cara => pintarCara(num, cara)} onToggleAusente={() => toggleAusente(num)}
+                getCaraColor={cara => getCaraColor(num, cara)} size={20} />
+            ))}
+          </div>
+          {/* Inferior adulto */}
+          <div className="flex items-start gap-1">
+            <span className="w-12" />
+            {INF_DER.map(num => (
+              <DienteWidget key={num} num={num} diente={getDiente(num)} pincel={pincel}
+                onPintarCara={cara => pintarCara(num, cara)} onToggleAusente={() => toggleAusente(num)}
+                getCaraColor={cara => getCaraColor(num, cara)} />
+            ))}
+            <div className="w-3 self-center border-l border-gray-300 h-8" />
+            {INF_IZQ.map(num => (
+              <DienteWidget key={num} num={num} diente={getDiente(num)} pincel={pincel}
+                onPintarCara={cara => pintarCara(num, cara)} onToggleAusente={() => toggleAusente(num)}
+                getCaraColor={cara => getCaraColor(num, cara)} />
+            ))}
+          </div>
         </div>
       </div>
 
@@ -235,14 +301,15 @@ function OdontogramaSection({ pacienteId, odontograma, onSave }: {
   );
 }
 
-function DienteWidget({ num, diente, onPintarCara, onToggleAusente, getCaraColor }: {
+function DienteWidget({ num, diente, onPintarCara, onToggleAusente, getCaraColor, size = 24 }: {
   num: number; diente: DienteEstado;
   onPintarCara: (c: Cara) => void;
   onToggleAusente: () => void;
   getCaraColor: (c: Cara) => string;
+  size?: number;
 }) {
   const ausente = diente.ausente;
-  const SIZE = 28;
+  const SIZE = size;
   const c = SIZE / 2;
   const inner = SIZE * 0.28;
 
